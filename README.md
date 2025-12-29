@@ -27,6 +27,23 @@
 
 ---
 
+## 📖 What Is This Really? (TL;DR)
+
+**SGNL is a smart filter that separates high-quality content from the noise.**
+
+Think of it as a research assistant that reads through articles, papers, and web content, then tells you:
+- What's actually worth reading (signal)
+- What's just fluff or marketing (noise)
+
+**How it works in 3 seconds:**
+1. You search for a topic
+2. SGNL finds content and scores it for quality/density
+3. You get only the valuable stuff, analyzed by AI
+
+**Perfect for:** Researchers, developers, students, or anyone drowning in information overload.
+
+---
+
 ## 🎯 The Approach: Filtering Noise
 
 The web has a lot of content. Some is useful. Some is not.
@@ -99,8 +116,8 @@ We reject smooth scrolling, excessive animations, and "delight". Tolerance for f
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/sgnl/engine.git
-cd engine
+git clone https://github.com/metin-korkmaz/sgnl-backend.git
+cd sgnl-backend
 
 # 2. Configure environment
 cp .env.example .env
@@ -129,7 +146,7 @@ docker compose up -d --build
 | ✅ No Hardcoded Credentials | Enabled | All secrets in environment variables |
 | ✅ Restricted CORS | Enabled | Domain-specific access only |
 | ✅ SSL/TLS Encryption | Enabled | Via Nginx Proxy Manager |
-| ✅ Rate Limiting | Enabled | 20 req/min/IP (configurable) |
+| ✅ Rate Limiting | Enabled | 3 req/min/IP (configurable) |
 | ✅ Network Isolation | Enabled | Docker network security |
 
 ### Domain Configuration
@@ -231,7 +248,7 @@ Content-Type: application/json
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
- | `OPENAI_API_KEY` | ✅ Yes | - | OpenAI API key (optional, for direct LLM calls) |
+| `OPENAI_API_KEY` | ❌ No | - | OpenAI API key (optional, for direct LLM calls) |
 | `TAVILY_API_KEY` | ✅ Yes | - | Tavily API key for web search |
 | `N8N_WEBHOOK_URL` | ✅ Yes | - | n8n deep scan webhook URL |
 | `N8N_FAST_SEARCH_URL` | ✅ Yes | - | n8n fast search webhook URL |
@@ -331,7 +348,7 @@ docker exec sgnl-api env | grep -E "API_KEY|N8N"
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Rate Limit** | 20 req/min/IP | Configurable via `RATE_LIMIT` |
+| **Rate Limit** | 3 req/min/IP (default) | Configurable via `RATE_LIMIT` |
 | **Max Content Size** | 12,000 chars | Configurable via `LLM_MAX_CHARS` |
 | **Density Threshold** | 0.45 | Configurable via `DENSITY_THRESHOLD` |
 | **Fast Search Latency** | <1500ms | Raw Tavily results |
@@ -370,10 +387,17 @@ This project is licensed under the Apache License 2.0.
 
 ---
 
+## 👤 Maintainer
+
+**Metin Samet Korkmaz**
+
+[![GitHub](https://img.shields.io/badge/GitHub-metin--korkmaz-blue)](https://github.com/metin-korkmaz)
+
+---
+
 ## 🏷️ Status
 
 ```
-Maintained by: Project SGNL Architects
 Status:        OPERATIONAL (see badge above)
 Last Updated:  December 29, 2025
 ```
