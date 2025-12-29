@@ -1,14 +1,25 @@
 <div align="center">
 
-# SGNL // SIGNAL EXTRACTION ENGINE
+# <span style="font-family: 'Courier New', Courier, monospace; font-weight: 900; font-size: 2.5em; letter-spacing: 8px; text-transform: uppercase; line-height: 1.1;">SGNL</span>
+// SIGNAL EXTRACTION ENGINE
 
 **STOP READING GARBAGE.**
 
 [![Status](https://img.shields.io/badge/status-operational-brightgreen)]()
 [![Version](https://img.shields.io/badge/version-2.0.0-blue)]()
-[![License](https://img.shields.io/badge/license-MIT-orange)]()
+[![License](https://img.shields.io/badge/license-Apache%202.0-orange)]()
 
 *The internet is broken. We fix it.*
+
+</div>
+
+---
+
+<div align="center">
+
+**🌐 Language Selection / Dil Seçimi**
+
+[🇬🇧 English](README.md) | [🇹🇷 Türkçe](README_TR.md)
 
 </div>
 
@@ -353,7 +364,7 @@ docker exec sgnl-api env | grep -E "API_KEY|N8N"
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the Apache License 2.0.
 
 ---
 
