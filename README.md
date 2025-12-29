@@ -9,7 +9,7 @@
 [![Version](https://img.shields.io/badge/version-2.0.0-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-orange)]()
 
-*The internet is broken. We fix it.*
+*Signal extraction for information filtering.*
 
 </div>
 
@@ -25,17 +25,17 @@
 
 ---
 
-## 🎯 The Manifesto: Anti-Slop
+## 🎯 The Approach: Filtering Noise
 
-The modern internet is a landfill of SEO spam, affiliate farms, and AI-generated noise. Google has abdicated its role as a curator, favoring engagement over truth.
+The web has a lot of content. Some is useful. Some is not.
 
-**SGNL exists to reclaim Signal.**
+**SGNL tries to help you find the useful parts.**
 
 ```python
 core_principles = {
-    "SIGNAL": "High-density information. Code benchmarks, peer-reviewed research, primary sources.",
-    "NOISE": "Listicles, 'SEO-optimized' fluff, anecdotal marketing, 10-minute intros.",
-    "METHOD": "We do not 'search'. We 'curate'. LLMs are strict editors, not creative writers."
+    "SIGNAL": "Code benchmarks, peer-reviewed research, primary sources.",
+    "NOISE": "Listicles, excessive intros, generic content.",
+    "METHOD": "We filter and analyze. Not perfect, but hopefully helpful."
 }
 ```
 
@@ -381,8 +381,8 @@ Last Updated:  December 29, 2025
 
 <div align="center">
 
-**Built with frustration. Deployed with hope.**
+**Information filtering tool.**
 
-*If you're reading this, you're already part of the problem.*
+*Trying to help you find better content.*
 
 </div>

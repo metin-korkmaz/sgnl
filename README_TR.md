@@ -9,7 +9,7 @@
 [![Version](https://img.shields.io/badge/version-2.0.0-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-orange)]()
 
-*İnternet bozuk. Biz düzeltiyoruz.*
+*Bilgi filtreleme aracı.*
 
 </div>
 
@@ -25,17 +25,17 @@
 
 ---
 
-## 🎯 Manifesto: Anti-Çöp (Anti-Slop)
+## 🎯 Yaklaşım: Gürültü Filtreleme
 
-Modern bir internet: SEO spamı, ortaklık çiftlikleri ve yapay zeka tarafından oluşturulan gürültüyle dolu bir çöplüktür. Google, gerçek yerine ilgi odağını bir küratör olarak rolünden vazgeçmiştir.
+İnternette çok içerik var. Bazıları faydalı. Bazıları değil.
 
-**SGNL Sinyali Geri Kazanmak İçin Var.**
+**SGNL yardımcı olmak için var.**
 
 ```python
 core_principles = {
-    "SIGNAL": "Yüksek yoğunluklu bilgi. Kod benchmarkları, hakemli araştırmalar, birincil kaynaklar.",
-    "NOISE": "Listeler, 'SEO optimize edilmiş' sözdizimi, anekdot pazarlaması, 10 dakikalık girişler.",
-    "METHOD": "Biz 'arama' yapmıyoruz. Biz 'kürasyon' yapıyoruz. YZ'ler sıkı editörler, yaratıcı yazarlar değil."
+    "SIGNAL": "Kod benchmarkları, hakemli araştırmalar, birincil kaynaklar.",
+    "NOISE": "Listeler, aşırı girişler, genel içerik.",
+    "METHOD": "Filtreleme ve analiz yapıyoruz. Mükemmel değil, ama umarım faydalı."
 }
 ```
 
@@ -381,8 +381,8 @@ Son Güncelleme: 29 Aralık 2025
 
 <div align="center">
 
-**Frustrasyonla inşa edildi. Umutla dağıtıldı.**
+**Bilgi filtreleme aracı.**
 
-*Bunu okuyorsanız, zaten sorunun bir parçasısınız.*
+*Daha iyi içerik bulmanıza yardımcı olmaya çalışıyoruz.*
 
 </div>
