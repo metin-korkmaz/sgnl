@@ -26,6 +26,10 @@ from models import (
     ExtractionResponse,
 )
 
+from analytics_middleware import AnalyticsMiddleware, init_db
+from analytics_routes import router as analytics_router
+from analytics_utils import create_visitor, cleanup_old_visitors
+
 # OpenAI client (lazy init)
 try:
     from openai import OpenAI
@@ -37,7 +41,7 @@ except Exception:
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """IP-based rate limiting: N requests per minute for search endpoints."""
 
-    RATE_LIMIT = int(os.getenv('RATE_LIMIT', '20'))
+    RATE_LIMIT = int(os.getenv('RATE_LIMIT', '3'))
     WINDOW_SECONDS = int(os.getenv('RATE_WINDOW_SECONDS', '60'))
     PROTECTED_PATHS = ['/fast-search', '/scan-topic', '/deep-scan']
     
@@ -94,8 +98,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 app = FastAPI(title="SGNL Extraction Engine", version="2.0.0")
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize analytics database
+try:
+    init_db()
+    logger.info("[ANALYTICS] Analytics system initialized")
+except Exception as e:
+    logger.warning(f"[ANALYTICS] Failed to initialize: {e}")
+
 # Add rate limiting middleware FIRST
 app.add_middleware(RateLimitMiddleware)
+
+# Add analytics middleware
+app.add_middleware(AnalyticsMiddleware)
+
+# Include analytics routes
+app.include_router(analytics_router)
 
 # Enable CORS for frontend
 app.add_middleware(
@@ -105,9 +125,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Get the directory where main.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -137,7 +154,15 @@ Rules:
 
 @app.get("/")
 async def serve_frontend(request: Request):
-    """Serve the SGNL Heavy Brutalist landing page."""
+    """Serve SGNL Heavy Brutalist landing page."""
+    session_id = request.cookies.get("sgnl_session")
+    
+    if session_id:
+        try:
+            await create_visitor(request, session_id)
+        except Exception as e:
+            logger.warning(f"[ANALYTICS] Failed to create visitor: {e}")
+    
     return templates.TemplateResponse("index.html", {"request": request})
 
 

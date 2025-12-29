@@ -18,7 +18,7 @@
         rel="stylesheet">
 
     <!-- Main Stylesheet -->
-    <link rel="stylesheet" href="/static/css/main.css?v=4.3">
+    <link rel="stylesheet" href="/static/css/main.css?v=4.4">
 </head>
 
 <body>
@@ -43,7 +43,7 @@
             <a href="#search">Scan</a>
             <a href="#manifesto">Manifesto</a>
             <a href="#comparison">Compare</a>
-            <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://github.com/metin-korkmaz/sgnl" target="_blank" rel="noopener">GitHub</a>
         </div>
     </nav>
 
@@ -90,6 +90,75 @@
                             SCAN
                         </button>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section (Initially Hidden) -->
+        <section class="results-section results-section--hidden" id="results-section">
+            <div class="container">
+                <!-- AI Analysis Section (Dynamic) -->
+                <div class="ai-analysis" id="ai-analysis" style="display: none;">
+                    <div class="analysis-header">
+                        <h3 class="analysis-headline">INTELLIGENCE REPORT //</h3>
+                        <div class="analysis-header-meta">
+                            <span class="analysis-timestamp" id="ai-timestamp">DATE: 2025-12-23</span>
+                            <div class="verdict-badge" id="ai-verdict">HIGH SIGNAL</div>
+                        </div>
+                    </div>
+
+                    <div class="analysis-grid">
+                        <!-- Left: Intelligence Report -->
+                        <div class="analysis-main">
+                            <h4 class="analysis-subhead">EXECUTIVE SUMMARY</h4>
+                            <p class="analysis-text" id="ai-summary"></p>
+                            <div class="analysis-source-meta" id="ai-source-meta">
+                                SOURCE: <span id="ai-source-domain">—</span> | AUTHOR: <span
+                                    id="ai-source-author">Unknown</span>
+                            </div>
+
+                            <h4 class="analysis-subhead analysis-subhead--findings">KEY FINDINGS</h4>
+                            <ul class="key-findings-list" id="ai-findings">
+                                <!-- JS will inject <li> items here -->
+                            </ul>
+                        </div>
+
+                        <!-- Right: Best Source -->
+                        <div class="analysis-best-source">
+                            <h4 class="analysis-subhead">BEST SOURCE</h4>
+                            <div class="best-source-card">
+                                <div class="signal-score-display">
+                                    <div class="signal-ring">
+                                        <svg viewBox="0 0 100 100" class="signal-ring-svg">
+                                            <circle class="signal-ring-bg" cx="50" cy="50" r="45" />
+                                            <circle class="signal-ring-fill" id="signal-ring-fill" cx="50" cy="50"
+                                                r="45" />
+                                        </svg>
+                                        <span class="signal-score-value" id="ai-signal-score">85</span>
+                                    </div>
+                                    <span class="signal-score-label">SIGNAL</span>
+                                </div>
+                                <a href="#" id="ai-best-link" class="best-source-link" target="_blank"></a>
+                                <div class="best-source-reason" id="ai-best-reason"></div>
+                                <a href="#" id="ai-cta-button" class="best-source-cta" target="_blank">[ ACCESS SOURCE →
+                                    ]</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analyzing Indicator (shown while deep scan runs) -->
+                <div class="analyzing-indicator" id="analyzing-indicator" style="display: none;">
+                    <div class="analyzing-pulse"></div>
+                    <span class="analyzing-text">ANALYZING SIGNALS...</span>
+                </div>
+
+                <div class="results-header" id="results-header">
+                    <span class="results-title">SCAN OUTPUT</span>
+                    <span class="results-count" id="results-count"></span>
+                </div>
+                <div id="results-body">
+                    <!-- Results will be rendered here by JavaScript -->
                 </div>
             </div>
         </section>
@@ -205,74 +274,7 @@
             </div>
         </section>
 
-        <!-- Results Section (Initially Hidden) -->
-        <section class="results-section results-section--hidden" id="results-section">
-            <div class="container">
-                <!-- AI Analysis Section (Dynamic) -->
-                <div class="ai-analysis" id="ai-analysis" style="display: none;">
-                    <div class="analysis-header">
-                        <h3 class="analysis-headline">INTELLIGENCE REPORT //</h3>
-                        <div class="analysis-header-meta">
-                            <span class="analysis-timestamp" id="ai-timestamp">DATE: 2025-12-23</span>
-                            <div class="verdict-badge" id="ai-verdict">HIGH SIGNAL</div>
-                        </div>
-                    </div>
 
-                    <div class="analysis-grid">
-                        <!-- Left: Intelligence Report -->
-                        <div class="analysis-main">
-                            <h4 class="analysis-subhead">EXECUTIVE SUMMARY</h4>
-                            <p class="analysis-text" id="ai-summary"></p>
-                            <div class="analysis-source-meta" id="ai-source-meta">
-                                SOURCE: <span id="ai-source-domain">—</span> | AUTHOR: <span
-                                    id="ai-source-author">Unknown</span>
-                            </div>
-
-                            <h4 class="analysis-subhead analysis-subhead--findings">KEY FINDINGS</h4>
-                            <ul class="key-findings-list" id="ai-findings">
-                                <!-- JS will inject <li> items here -->
-                            </ul>
-                        </div>
-
-                        <!-- Right: Best Source -->
-                        <div class="analysis-best-source">
-                            <h4 class="analysis-subhead">BEST SOURCE</h4>
-                            <div class="best-source-card">
-                                <div class="signal-score-display">
-                                    <div class="signal-ring">
-                                        <svg viewBox="0 0 100 100" class="signal-ring-svg">
-                                            <circle class="signal-ring-bg" cx="50" cy="50" r="45" />
-                                            <circle class="signal-ring-fill" id="signal-ring-fill" cx="50" cy="50"
-                                                r="45" />
-                                        </svg>
-                                        <span class="signal-score-value" id="ai-signal-score">85</span>
-                                    </div>
-                                    <span class="signal-score-label">SIGNAL</span>
-                                </div>
-                                <a href="#" id="ai-best-link" class="best-source-link" target="_blank"></a>
-                                <div class="best-source-reason" id="ai-best-reason"></div>
-                                <a href="#" id="ai-cta-button" class="best-source-cta" target="_blank">[ ACCESS SOURCE →
-                                    ]</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Analyzing Indicator (shown while deep scan runs) -->
-                <div class="analyzing-indicator" id="analyzing-indicator" style="display: none;">
-                    <div class="analyzing-pulse"></div>
-                    <span class="analyzing-text">ANALYZING SIGNALS...</span>
-                </div>
-
-                <div class="results-header" id="results-header">
-                    <span class="results-title">SCAN OUTPUT</span>
-                    <span class="results-count" id="results-count"></span>
-                </div>
-                <div id="results-body">
-                    <!-- Results will be rendered here by JavaScript -->
-                </div>
-            </div>
-        </section>
 
         <!-- Features Section -->
         <section class="features-section" id="features">
@@ -330,7 +332,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 
     <!-- Main JavaScript -->
-    <script src="/static/js/main.js"></script>
+    <script src="/static/js/main.js?v=4.4"></script>
+
+    <!-- Analytics JavaScript -->
+    <script src="/static/js/analytics.js"></script>
 </body>
 
 </html>

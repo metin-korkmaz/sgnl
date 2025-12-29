@@ -16,7 +16,7 @@ class TestRateLimitMiddleware:
         middleware = RateLimitMiddleware(app)
 
         assert middleware.request_counts == {}
-        assert middleware.RATE_LIMIT == 20  # default
+        assert middleware.RATE_LIMIT == 3  # default
         assert middleware.WINDOW_SECONDS == 60  # default
         assert "/fast-search" in middleware.PROTECTED_PATHS
 

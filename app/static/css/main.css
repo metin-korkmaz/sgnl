@@ -523,7 +523,7 @@ h3,
 }
 
 .comparison-col--legacy .col-header {
-    color: #444;
+    color: #777;
 }
 
 .comparison-col--sgnl .col-header {
@@ -543,7 +543,7 @@ h3,
 }
 
 .legacy-item {
-    color: #444;
+    color: #777;
     text-decoration: line-through;
 }
 
@@ -563,7 +563,7 @@ h3,
     font-size: 48px;
     font-weight: 900;
     line-height: 1;
-    color: #444;
+    color: #777;
     display: flex;
     flex-direction: column;
     gap: 8px;

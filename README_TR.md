@@ -234,7 +234,7 @@ Content-Type: application/json
 | `N8N_WEBHOOK_URL` | ✅ Evet | - | n8n derin tarama webhook URL'si |
 | `N8N_FAST_SEARCH_URL` | ✅ Evet | - | n8n hızlı arama webhook URL'si |
 | `ALLOWED_ORIGINS` | ❌ Hayır | `https://sgnl.metinkorkmaz.quest` | CORS izin verilen kaynaklar |
-| `RATE_LIMIT` | ❌ Hayır | 20 | IP başına maksimum istek/dakika |
+| `RATE_LIMIT` | ❌ Hayır | 3 | IP başına maksimum istek/dakika |
 | `RATE_WINDOW_SECONDS` | ❌ Hayır | 60 | Hız sınırlama zaman penceresi |
 | `HOST` | ❌ Hayır | 0.0.0.0 | API sunucusu ana bilgisayarı |
 | `PORT` | ❌ Hayır | 8000 | API sunucusu portu |

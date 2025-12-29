@@ -5,9 +5,11 @@
 
 **STOP READING GARBAGE.**
 
-[![Status](https://img.shields.io/badge/status-operational-brightgreen)]()
-[![Version](https://img.shields.io/badge/version-2.0.0-blue)]()
-[![License](https://img.shields.io/badge/license-Apache%202.0-orange)]()
+[![Status](https://img.shields.io/website-up-down-green-red/http/sgnl.metinkorkmaz.quest.svg)](http://sgnl.metinkorkmaz.quest)
+[![Version](https://img.shields.io/github/v/tag/metin-korkmaz/sgnl-backend)](https://github.com/metin-korkmaz/sgnl-backend/tags)
+[![License](https://img.shields.io/badge/license-Apache%202.0-orange)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/metin-korkmaz/sgnl-backend)](https://github.com/metin-korkmaz/sgnl-backend/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/metin-korkmaz/sgnl-backend)](https://github.com/metin-korkmaz/sgnl-backend/commits/main)
 
 *Signal extraction for information filtering.*
 
@@ -234,7 +236,7 @@ Content-Type: application/json
 | `N8N_WEBHOOK_URL` | ✅ Yes | - | n8n deep scan webhook URL |
 | `N8N_FAST_SEARCH_URL` | ✅ Yes | - | n8n fast search webhook URL |
 | `ALLOWED_ORIGINS` | ❌ No | `https://sgnl.metinkorkmaz.quest` | CORS allowed origins |
-| `RATE_LIMIT` | ❌ No | 20 | Max requests per IP/minute |
+| `RATE_LIMIT` | ❌ No | 3 | Max requests per IP/minute |
 | `RATE_WINDOW_SECONDS` | ❌ No | 60 | Rate limiting time window |
 | `HOST` | ❌ No | 0.0.0.0 | API server host |
 | `PORT` | ❌ No | 8000 | API server port |
@@ -372,8 +374,7 @@ This project is licensed under the Apache License 2.0.
 
 ```
 Maintained by: Project SGNL Architects
-Status:        OPERATIONAL
-Version:       2.0.0
+Status:        OPERATIONAL (see badge above)
 Last Updated:  December 29, 2025
 ```
 

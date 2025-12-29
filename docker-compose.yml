@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     expose:
       - "${PORT:-8000}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PYTHONUNBUFFERED=1
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -14,13 +16,14 @@ services:
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       - N8N_FAST_SEARCH_URL=${N8N_FAST_SEARCH_URL}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://sgnl.metinkorkmaz.quest}
-      - RATE_LIMIT=${RATE_LIMIT:-20}
+      - RATE_LIMIT=${RATE_LIMIT:-3}
       - RATE_WINDOW_SECONDS=${RATE_WINDOW_SECONDS:-60}
       - HOST=${HOST:-0.0.0.0}
       - PORT=${PORT:-8000}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DENSITY_THRESHOLD=${DENSITY_THRESHOLD:-0.45}
       - LLM_MAX_CHARS=${LLM_MAX_CHARS:-12000}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://sgnl_analytics:123456@host.docker.internal:5432/sgnl}
     networks:
       - nginx-proxy_default
 

@@ -905,6 +905,14 @@ function renderResults(data, aiAnalysis = null) {
             ease: 'power2.out'
         });
     }
+
+    // Scroll to results after a short delay (ensures DOM is painted)
+    setTimeout(() => {
+        const resultsHeader = document.getElementById('results-header');
+        if (resultsHeader) {
+            resultsHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 100);
 }
 
 /* ========== EVENT LISTENERS ========== */

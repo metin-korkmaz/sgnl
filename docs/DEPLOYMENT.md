@@ -28,7 +28,7 @@ nano .env
 
 **Optional variables:**
 - `ALLOWED_ORIGINS` - Default: `https://sgnl.metinkorkmaz.quest`
-- `RATE_LIMIT` - Default: 20 requests/minute
+- `RATE_LIMIT` - Default: 3 requests/minute
 - `LOG_LEVEL` - Default: INFO
 
 ### Step 2: Deploy with Docker Compose
@@ -145,7 +145,7 @@ python main.py
 | `N8N_WEBHOOK_URL` | Yes | - | n8n webhook URL for deep scan |
 | `N8N_FAST_SEARCH_URL` | Yes | - | n8n webhook URL for fast search |
 | `ALLOWED_ORIGINS` | No | `https://sgnl.metinkorkmaz.quest` | CORS allowed origins (comma-separated) |
-| `RATE_LIMIT` | No | 20 | Max requests per IP per minute |
+| `RATE_LIMIT` | No | 3 | Max requests per IP per minute |
 | `RATE_WINDOW_SECONDS` | No | 60 | Time window for rate limiting |
 | `HOST` | No | 0.0.0.0 | API server host |
 | `PORT` | No | 8000 | Internal container port |

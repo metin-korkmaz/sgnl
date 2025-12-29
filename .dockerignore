@@ -27,3 +27,8 @@ env/
 *.log
 *.tmp
 .DS_Store
+
+# Analytics Database
+*.db
+*.sqlite
+*.sqlite3
