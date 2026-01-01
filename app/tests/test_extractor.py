@@ -1,6 +1,9 @@
 import pytest
+import os
 from unittest.mock import patch, MagicMock
-from app.extractor import calculate_density, ContentExtractor
+import sys
+sys.path.insert(0, '/root/sgnl-backend/app')
+from extractor import calculate_density, calculate_depid_density, calculate_readability_scores, calculate_combined_density, ContentExtractor
 
 
 class TestCalculateDensity:
@@ -133,6 +136,35 @@ class TestContentExtractor:
         assert error_resp["signal_score"] == 0.0
         assert error_resp["density_score"] == 0.0
         assert error_resp["error"] == "Test error"
+
+    @pytest.mark.asyncio
+    async def test_extract_from_url_with_new_fields(self, mock_httpx_client):
+        """Test extraction response includes new depid and readability fields."""
+        extractor = ContentExtractor()
+
+        with patch('app.extractor.trafilatura.extract') as mock_extract, \
+             patch('app.extractor.trafilatura.extract_metadata') as mock_metadata, \
+             patch('app.extractor.calculate_density') as mock_density, \
+             patch('app.extractor.calculate_depid_density') as mock_depid, \
+             patch('app.extractor.calculate_readability_scores') as mock_readability, \
+             patch('app.extractor.calculate_combined_density') as mock_combined, \
+             patch.object(extractor, '_fetch_page', return_value="<html><body>Test content</body></html>"):
+
+            mock_extract.return_value = "Extracted clean text content"
+            mock_metadata.return_value = MagicMock()
+            mock_metadata.return_value.title = "Test Title"
+            mock_density.return_value = 0.7
+            mock_depid.return_value = 0.6
+            mock_readability.return_value = {"flesch_reading_ease": 60.0}
+            mock_combined.return_value = 0.65
+
+            result = await extractor.extract_from_url("https://example.com")
+
+            assert result["url"] == "https://example.com"
+            assert result["title"] == "Test Title"
+            assert result["density_score"] == 0.7
+            assert result["depid_density"] == 0.6
+            assert result["readability_score"] == {"flesch_reading_ease": 60.0}
 
     def test_calculate_signal_score_high_quality_content(self):
         """Test signal score calculation with high-quality content."""
@@ -278,5 +310,128 @@ class TestContentExtractor:
 
             assert result["url"] == "https://example.com"
             assert "error" in result
-            assert result["error"] == "Network error"</content>
-<parameter name="filePath">app/tests/test_extractor.py
+            assert result["error"] == "Network error"
+
+
+class TestCalculateDepidDensity:
+    """Test calculate_depid_density function."""
+
+    def test_calculate_depid_density_success(self, sample_text_high_density):
+        """Test DEPID density calculation with valid text."""
+        with patch('app.extractor.IDEADENSITY_AVAILABLE', True), \
+             patch('app.extractor.depid') as mock_depid:
+            mock_depid.return_value = (0.7, 100, [])
+            density = calculate_depid_density(sample_text_high_density)
+            assert density == 0.7
+            mock_depid.assert_called_once()
+
+    def test_calculate_depid_density_unavailable(self, sample_text_high_density):
+        """Test DEPID density when ideadensity is unavailable."""
+        with patch('app.extractor.IDEADENSITY_AVAILABLE', False):
+            density = calculate_depid_density(sample_text_high_density)
+            assert density is None
+
+    def test_calculate_depid_density_short_text(self):
+        """Test DEPID density with short text."""
+        short_text = "Short"
+        density = calculate_depid_density(short_text)
+        assert density is None
+
+    def test_calculate_depid_density_exception_handling(self, sample_text_high_density):
+        """Test DEPID density when depid raises exception."""
+        with patch('app.extractor.IDEADENSITY_AVAILABLE', True), \
+             patch('app.extractor.depid') as mock_depid:
+            mock_depid.side_effect = Exception("DEPID error")
+            density = calculate_depid_density(sample_text_high_density)
+            assert density is None
+
+
+class TestCalculateReadabilityScores:
+    """Test calculate_readability_scores function."""
+
+    def test_calculate_readability_scores_success(self, sample_text_high_density):
+        """Test readability scores calculation with valid text."""
+        with patch('app.extractor.TEXTSTAT_AVAILABLE', True), \
+             patch('app.extractor.textstat') as mock_textstat:
+            mock_textstat.flesch_reading_ease.return_value = 75.0
+            mock_textstat.flesch_kincaid_grade.return_value = 10.0
+            mock_textstat.gunning_fog.return_value = 12.0
+            mock_textstat.automated_readability_index.return_value = 6.0
+            mock_textstat.coleman_liau_index.return_value = 9.0
+
+            scores = calculate_readability_scores(sample_text_high_density)
+
+            assert "flesch_reading_ease" in scores
+            assert "flesch_kincaid_grade" in scores
+            assert "gunning_fog" in scores
+            assert "automated_readability_index" in scores
+            assert "coleman_liau_index" in scores
+            assert scores["flesch_reading_ease"] == 75.0
+
+    def test_calculate_readability_scores_unavailable(self, sample_text_high_density):
+        """Test readability scores when textstat is unavailable."""
+        with patch('app.extractor.TEXTSTAT_AVAILABLE', False):
+            scores = calculate_readability_scores(sample_text_high_density)
+            assert scores == {}
+
+    def test_calculate_readability_scores_short_text(self):
+        """Test readability scores with short text."""
+        short_text = "Short"
+        scores = calculate_readability_scores(short_text)
+        assert scores == {}
+
+
+class TestCalculateCombinedDensity:
+    """Test calculate_combined_density function."""
+
+    @patch.dict(os.environ, {'CPIDR_WEIGHT': '0.5', 'DEPID_WEIGHT': '0.3', 'READABILITY_WEIGHT': '0.2'}, clear=True)
+    def test_combined_density_with_all_metrics(self):
+        """Test combined density with CPIDR, DEPID, and readability."""
+        cpidr = 0.6
+        depid = 0.7
+        readability = {"flesch_reading_ease": 60.0}
+
+        combined = calculate_combined_density(cpidr, depid, readability)
+
+        # Expected: (0.6 * 0.5 + 0.7 * 0.3 + (30/90) * 0.2) / 1.0
+        # Reading difficulty: (90 - 60) / 90 = 0.333
+        # Combined: (0.3 + 0.21 + 0.067) = 0.577
+        assert 0.5 <= combined <= 0.6
+
+    @patch.dict(os.environ, {'CPIDR_WEIGHT': '0.5', 'DEPID_WEIGHT': '0.3', 'READABILITY_WEIGHT': '0.2'}, clear=True)
+    def test_combined_density_depid_none(self):
+        """Test combined density when DEPID is None."""
+        cpidr = 0.6
+        depid = None
+        readability = {"flesch_reading_ease": 60.0}
+
+        combined = calculate_combined_density(cpidr, depid, readability)
+
+        # Expected: (0.6 * 0.5 + 0.067) / (0.5 + 0.2) = 0.667 / 0.7 = 0.95
+        # Actually without DEPID weight: 0.667 / 0.7 = 0.95
+        assert 0.0 <= combined <= 1.0
+
+    @patch.dict(os.environ, {'CPIDR_WEIGHT': '0.5', 'DEPID_WEIGHT': '0.3', 'READABILITY_WEIGHT': '0.2'}, clear=True)
+    def test_combined_density_no_readability(self):
+        """Test combined density when readability is empty."""
+        cpidr = 0.6
+        depid = 0.7
+        readability = {}
+
+        combined = calculate_combined_density(cpidr, depid, readability)
+
+        # Should fall back to CPIDR + DEPID only (0.6 * 0.5 + 0.7 * 0.3) / 0.8 ≈ 0.83
+        assert 0.0 <= combined <= 1.0
+
+    @patch.dict(os.environ, {'CPIDR_WEIGHT': '0.8', 'DEPID_WEIGHT': '0.1', 'READABILITY_WEIGHT': '0.1'}, clear=True)
+    def test_combined_density_custom_weights(self):
+        """Test combined density with custom weights from env."""
+        cpidr = 0.5
+        depid = 0.6
+        readability = {"flesch_reading_ease": 60.0}
+
+        combined = calculate_combined_density(cpidr, depid, readability)
+
+        # Expected: (0.5 * 0.8 + 0.6 * 0.1 + 0.333 * 0.1) / 1.0
+        expected = (0.4 + 0.06 + 0.0333) / 1.0
+        assert abs(combined - expected) < 0.01

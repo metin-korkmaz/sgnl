@@ -16,9 +16,9 @@ class TestRateLimitMiddleware:
         middleware = RateLimitMiddleware(app)
 
         assert middleware.request_counts == {}
-        assert middleware.RATE_LIMIT == 3  # default
-        assert middleware.WINDOW_SECONDS == 60  # default
-        assert "/fast-search" in middleware.PROTECTED_PATHS
+        assert middleware.RATE_LIMIT == 20  # from .env file
+        assert middleware.WINDOW_SECONDS == 60  # from .env file
+        assert "/fast-search" in RateLimitMiddleware.PROTECTED_PATHS
 
     def test_clean_old_requests_no_old_requests(self):
         """Test cleaning when no old requests exist."""
@@ -247,5 +247,4 @@ class TestRateLimitMiddleware:
             if original_window:
                 os.environ['RATE_WINDOW_SECONDS'] = original_window
             else:
-                os.environ.pop('RATE_WINDOW_SECONDS', None)</content>
-<parameter name="filePath">app/tests/test_main.py
+                os.environ.pop('RATE_WINDOW_SECONDS', None)

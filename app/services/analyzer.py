@@ -78,13 +78,13 @@ class HeuristicAnalyzer:
             Dict with 'score' (0-100) and 'reason' (explanation)
         """
         if not html_content or len(html_content) < 100:
-            return {"score": 0, "reason": "Empty or too short content"}
-        
+            return {"score": 0, "reason": "Empty or too short content", "adjustments": []}
+
         try:
             soup = BeautifulSoup(html_content, "lxml")
         except Exception as e:
             logger.warning(f"Failed to parse HTML: {e}")
-            return {"score": 30, "reason": "Failed to parse HTML"}
+            return {"score": 30, "reason": "Failed to parse HTML", "adjustments": []}
         
         # Initialize scores
         base_score = 50
@@ -183,16 +183,17 @@ class HeuristicAnalyzer:
     ) -> Tuple[int, str]:
         """Penalize if HTML-to-text ratio indicates bloat/ads."""
         text = soup.get_text(separator=" ", strip=True)
-        
-        if len(text) < 200:
-            return (-20, "Very thin content")
-        
+
         # Calculate ratio
         html_len = len(html)
         text_len = len(text)
-        
+
+        # Check for NO text first (more severe than thin content)
         if text_len == 0:
             return (-30, "No readable text content")
+
+        if len(text) < 200:
+            return (-20, "Very thin content")
         
         ratio = html_len / text_len
         
@@ -230,22 +231,20 @@ class HeuristicAnalyzer:
     
     def _detect_hype(self, soup: BeautifulSoup) -> Tuple[int, str]:
         """Penalize if title contains hype/clickbait words."""
+        # Check title tag first (higher penalty)
         title_tag = soup.find("title")
-        if not title_tag:
-            return (0, "")
-        
-        title = title_tag.get_text()
-        
-        if self.hype_regex.search(title):
-            return (-20, f"Clickbait title detected: '{title[:50]}...'")
-        
-        # Also check h1
+        if title_tag:
+            title = title_tag.get_text()
+            if self.hype_regex.search(title):
+                return (-20, f"Clickbait title detected: '{title[:50]}...'")
+
+        # Also check h1 (lower penalty)
         h1_tag = soup.find("h1")
         if h1_tag:
             h1_text = h1_tag.get_text()
             if self.hype_regex.search(h1_text):
                 return (-15, f"Hype headline detected: '{h1_text[:50]}...'")
-        
+
         return (0, "")
 
 

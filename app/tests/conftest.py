@@ -14,7 +14,23 @@ def client():
 @pytest.fixture
 def sample_html():
     """Sample HTML content for testing."""
-    return '<html><head><title>Test Article</title></head><body><h1>Test</h1><p>Content</p></body></html>'
+    return '''
+<html>
+<head><title>Test Article</title></head>
+<body>
+    <h1>Test</h1>
+    <p>This is a test article with content.</p>
+    <pre><code>def hello_world():
+    print("Hello, World!")</code></pre>
+    <pre><code>function greet() {
+    console.log("Hi!");
+}</code></pre>
+    <table><tr><td>Data 1</td><td>Data 2</td></tr></table>
+    <table><tr><td>Data 3</td><td>Data 4</td></tr></table>
+    <table><tr><td>Data 5</td><td>Data 6</td></tr></table>
+</body>
+</html>
+'''
 
 
 @pytest.fixture
