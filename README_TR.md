@@ -1,17 +1,13 @@
 <div align="center">
 
 # <span style="font-family: 'Courier New', Courier, monospace; font-weight: 900; font-size: 2.5em; letter-spacing: 8px; text-transform: uppercase; line-height: 1.1;">SGNL</span>
-// SİNYAL ÇIKARMA MOTORU
+// Sinyal Çıkarma Motoru
 
 **ÇÖP OKUMAYI DURDURUN.**
 
 [![Status](https://img.shields.io/website-up-down-green-red/https/sgnl.metinkorkmaz.quest.svg)](https://sgnl.metinkorkmaz.quest)
-[![Version](https://img.shields.io/github/v/tag/metin-korkmaz/sgnl)](https://github.com/metin-korkmaz/sgnl/tags)
 [![License](https://img.shields.io/badge/license-Apache%202.0-orange)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/metin-korkmaz/sgnl)](https://github.com/metin-korkmaz/sgnl/stargazers)
-[![Forks](https://img.shields.io/github/forks/metin-korkmaz/sgnl)](https://github.com/metin-korkmaz/sgnl/network)
-[![Issues](https://img.shields.io/github/issues/metin-korkmaz/sgnl)](https://github.com/metin-korkmaz/sgnl/issues)
-[![PRs](https://img.shields.io/github/issues-pr/metin-korkmaz/sgnl)](https://github.com/metin-korkmaz/sgnl/pulls)
 [![Last commit](https://img.shields.io/github/last-commit/metin-korkmaz/sgnl)](https://github.com/metin-korkmaz/sgnl/commits/main)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/release/python-311/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green)](https://fastapi.tiangolo.com)
@@ -33,107 +29,107 @@
 
 ---
 
-## 📖 Bu Nedir Aslında? (Özet)
+## 📖 Bu Nedir? (Kısa Özet)
 
-**SGNL, yüksek kaliteli içeriği gürültüden ayıran akıllı bir filtre.**
+**SGNL, internetteki yüksek kaliteli içeriği düşük kaliteli gürültüden ayıran akıllı bir filtreleme sistemidir.**
 
-Bir araştırma asistanı gibi düşünün; makaleleri, araştırmaları ve web içeriğini okur ve size şunları söyler:
-- Okunmaya değer olan şeyler (sinyal)
-- Sadece reklam/gürültü olan şeyler (gürültü)
+Bir araştırma asistanı gibi düşünün; makaleleri, akademik çalışmaları ve web içeriğini analiz eder ve size şunları söyler:
+- Okunmaya değer olan içerikler (sinyal)
+- Sadece reklam ve SEO spamı olan içerikler (gürültü)
 
-**3 saniyede nasıl çalışır:**
-1. Bir konu arayın
-2. SGNL içerik bulur ve kalite/yoğunluk olarak puanlar
-3. Sadece değerli şeyleri, yapay zeka tarafından analiz edilmiş şekilde alırsınız
+**3 basit adımda nasıl çalışır:**
+1. Bir konu başlığı girin
+2. SGNL ilgili içerikleri bulur ve kalite/yoğunluk puanı verir
+3. Sadece değerli içerikleri yapay zeka analiziyle birlikte alırsınız
 
-**İdeal kullanım alanı:** Araştırmacılar, geliştiriciler, öğrenciler veya bilgi selinden boğulan herkes.
+**Kimler için ideal?** Araştırmacılar, geliştiriciler, öğrenciler veya internet'teki bilgi kirliliğinden rahatsız olan herkes.
 
 ---
 
-## 🎯 Yaklaşım: Gürültü Filtreleme
+## 🎯 Çalışma Prensibi: Gürültü Filtreleme
 
-İnternette çok içerik var. Bazıları faydalı. Bazıları değil.
+İnternette çok fazla içerik var. Bir kısmı değerli, büyük kısmı zaman kaybı.
 
-**SGNL yardımcı olmak için var.**
+**SGNL işte tam bu noktada yardımcı oluyor.**
 
 ```python
 core_principles = {
-    "SIGNAL": "Kod benchmarkları, hakemli araştırmalar, birincil kaynaklar.",
-    "NOISE": "Listeler, aşırı girişler, genel içerik.",
-    "METHOD": "Filtreleme ve analiz yapıyoruz. Mükemmel değil, ama umarım faydalı."
+    "SIGNAL": "Kod benchmark'ları, hakemli araştırmalar, birincil kaynaklar.",
+    "NOISE": "Listicle'ler, tık tuzağı başlıkları, yüzeysel içerik.",
+    "METHOD": "Filtreleme ve analiz yapıyoruz. Mükemmel değil, ama faydalı olmayı hedefliyoruz."
 }
 ```
 
 ---
 
-## ⚡ Sistem Genel Bakışı
+## ⚡ Sistem Mimarisi
 
-SGNL, hız ve derinliği dengelemek için tasarlanmış bir **Çift Motor Mimarisi** üzerinde çalışır.
+SGNL, hız ve derinlik arasındaki dengeyi kurmak için tasarlanmış **Çift Motor Mimarisi** ile çalışır.
 
-| Motor | Gecikme | Eylem | Kullanıcı Deneyimi |
-|--------|----------|--------|------------------|
-| **Hızlı Şerit** | <1500ms | Ham Tavily arama vektörlerini çıkarır | İyimser UI — anlık sonuç tablosu |
-| **Derin Tarama** | Zaman Uzun (Arka Plan) | GPT-OSS-120B yüksek değerli eserleri analiz eder (Deepinfra/n8n aracılığıyla) | Doğrulanmış sinyalde İstihbarat Raporu enjekte edilir |
+| Motor | Yanıt Süresi | İşlev | Kullanıcı Deneyimi |
+|--------|--------------|--------|------------------|
+| **Hızlı Tarama** | <1500ms | Tavily API ile anlık web araması | Sade UI — anlık sonuç listesi |
+| **Derin Tarama** | Uzun (Arka Planda) | GPT-OSS-120B ile yüksek kaliteli içerik analiz ediliyor (Deepinfra/n8n üzerinden) | Doğrulanmış sinyal için İstihbarat Raporu ekleniyor |
 
 ### Mimari Akış
 
 ```
-Kullanıcı İsteği → Hızlı Şerit (Tavily) → Anlık Sonuçlar
+Kullanıcı İsteği → Hızlı Tarama (Tavily) → Anlık Sonuçlar
                         ↓
-                 Derin Tarama (GPT-OSS-120B Deepinfra/n8n ile) → Sinyal Analizi → İstihbarat Raporu
+                  Derin Tarama (GPT-OSS-120B Deepinfra/n8n ile) → Sinyal Analizi → İstihbarat Raporu
 ```
 
-**Strateji:** "Küratör İstemi". Yapay zeka'ya öğretmesini yasaklıyoruz. Sadece yoğunluğu ve gerçekleri tarar.
+**Strateji:** "Curator Model" - Yapay zeka'ya eğitim verisi sağlamayı tamamen engelliyoruz. Sadece içerik yoğunluğunu ve gerçekçiliğini tarıyoruz.
 
-**LLM Mimarisi:** Derin tarama analizi, n8n iş akışları tarafından Deepinfra API ve GPT-OSS-120B modeli kullanılarak optimum performans ve maliyet verimliliği için işlenir.
+**LLM Mimarisi:** Derin tarama analizi, n8n workflow'ları üzerinden Deepinfra API'si ve GPT-OSS-120B modeli kullanılarak optimum performans ve maliyet verimliliğiyle işleniyor.
 
 ---
 
-## 🎨 Tasarım Sistemi: İsviçre Brutalizmi
+## 🎨 Tasarım Dili: İsviçre Brutalizmi
 
-Pürüzsüz kaydırmayı, aşırı animasyonları ve "memnuniyeti" reddediyoruz. Sürtünmeye tolerans sıfır.
+Pürüzsüz geçişleri, aşırı animasyonları ve "müşteri memnuniyeti" taklidini reddediyoruz. Sürtünmeye toleransımız sıfır.
 
 ### Renk Paleti
 
-| Renk | Hex Kodu | Kullanım |
-|-------|-----------|---------|
-| ⬛ **Mürekkep Siyah** | `#000000` | Boşluk |
-| ⬜ **Kırık Beyaz** | `#F4F1EA` | Kağıt |
-| 🟧 **Güvenlik Turuncusu** | `#FF4500` | Uyarılar |
-| 🟩 **Sinyal Yeşili** | `#00FF00` | Doğrulanmış gerçek |
+| Renk | Hex Kodu | Kullanım Alanı |
+|-------|-----------|---------------|
+| ⬛ **Mürekkep Siyah** | `#000000` | Boşluklar |
+| ⬜ **Kırık Beyaz** | `#F4F1EA` | Kağıt dokusu |
+| 🟧 **Uyarı Turuncusu** | `#FF4500` | Vurgular ve aksiyon butonları |
+| 🟩 **Sinyal Yeşili** | `#00FF00` | Doğrulanmış gerçek içerik |
 
 ### Tipografi
 
-- **Başlıklar:** Endüstriyel Sans (Ağır ağırlık)
-- **Veri:** Monospace/Terminal
+- **Başlıklar:** Endüstriyel Sans-Serif (Ağır ağırlık, cesur)
+- **Veri ve Kod:** Monospace/Terminal stili
 
 ---
 
 ## 🚀 Hızlı Başlangıç
 
-### Ön Koşullar
+### Önkoşullar
 
 - [x] Docker & Docker Compose
 - [x] Geçerli `TAVILY_API_KEY` (web araması için)
 - [x] Deepinfra API ile yapılandırılmış n8n örneği (LLM analizi için)
 - [ ] `OPENAI_API_KEY` (isteğe bağlı, doğrudan LLM çağrıları için)
 
-### Kurulum
+### Kurulum Adımları
 
 ```bash
 # 1. Depoyu klonlayın
 git clone https://github.com/metin-korkmaz/sgnl.git
 cd sgnl
 
-# 2. Ortamı yapılandırın
+# 2. Ortam değişkenlerini yapılandırın
 cp .env.example .env
 nano .env  # API anahtarlarınızı ekleyin
 
-# 3. Başlatın
+# 3. Sistemi başlatın
 docker compose up -d --build
 ```
 
-### Erişim
+### Erişim Noktaları
 
 | Hizmet | URL |
 |---------|-----|
@@ -149,9 +145,9 @@ docker compose up -d --build
 
 | Özellik | Durum | Açıklama |
 |---------|--------|----------|
-| ✅ Sabitlenmiş Kimlik Bilgisi Yok | Aktif | Tüm sırlar ortam değişkenlerinde |
-| ✅ Kısıtlı CORS | Aktif | Sadece alan adına özel erişim |
-| ✅ SSL/TLS Şifreleme | Aktif | Nginx Proxy Manager aracılığıyla |
+| ✅ Hardcoded Credential Yok | Aktif | Tüm API anahtarları ortam değişkenlerinde |
+| ✅ Kısıtlı CORS | Aktif | Sadece belirli alan adlarına erişime izin veriliyor |
+| ✅ SSL/TLS Şifreleme | Aktif | Nginx Proxy Manager üzerinden |
 | ✅ Hız Sınırlama | Aktif | 3 istek/dakika/IP (yapılandırılabilir) |
 | ✅ Ağ İzolasyonu | Aktif | Docker ağ güvenliği |
 
@@ -159,10 +155,10 @@ docker compose up -d --build
 
 ```
 Üretim: https://sgnl.metinkorkmaz.quest
-n8n:       http://n8n.metinkorkmaz.quest (dahili)
+n8n:       http://n8n.metinkorkmaz.quest (dahili ağ)
 ```
 
-### Ortam Kurulumu
+### Ortam Kurulumu Örneği
 
 ```bash
 # Örnek dosyayı kopyalayın
@@ -200,7 +196,7 @@ GET /health
 }
 ```
 
-### İçerik Çıkarımı
+### İçerik Çıkarma
 
 ```bash
 POST /extract
@@ -229,7 +225,7 @@ POST /fast-search
 Content-Type: application/json
 
 {
-  "topic": "makine öğrenmesi benchmarkları",
+  "topic": "makine öğrenmesi benchmark'ları",
   "max_results": 10
 }
 ```
@@ -260,8 +256,8 @@ Content-Type: application/json
 | `N8N_FAST_SEARCH_URL` | ✅ Evet | - | n8n hızlı arama webhook URL'si |
 | `ALLOWED_ORIGINS` | ❌ Hayır | `https://sgnl.metinkorkmaz.quest` | CORS izin verilen kaynaklar |
 | `RATE_LIMIT` | ❌ Hayır | 3 | IP başına maksimum istek/dakika |
-| `RATE_WINDOW_SECONDS` | ❌ Hayır | 60 | Hız sınırlama zaman penceresi |
-| `HOST` | ❌ Hayır | 0.0.0.0 | API sunucusu ana bilgisayarı |
+| `RATE_WINDOW_SECONDS` | ❌ Hayır | 60 | Hız sınırlama zaman penceresi (saniye) |
+| `HOST` | ❌ Hayır | 0.0.0.0 | API sunucusu bağlayacağı bilgisayar |
 | `PORT` | ❌ Hayır | 8000 | API sunucusu portu |
 | `LOG_LEVEL` | ❌ Hayır | INFO | Günlük kaydı ayrıntı seviyesi |
 | `DENSITY_THRESHOLD` | ❌ Hayır | 0.45 | İçerik yoğunluk eşiği (0.0-1.0) |
@@ -321,25 +317,25 @@ sgnl/
 
 | Sorun | Çözüm |
 |-------|--------|
-| **Kapsayıcı başlamıyor** | `docker-compose logs sgnl-api` komutunu kontrol edin ve `.env` dosyasının var olduğunu doğrulayın |
-| **n8n bağlantısı başarısız** | `N8N_WEBHOOK_URL` ayarlandığını ve n8n çalıştığını doğrulayın |
-| **CORS hataları** | `ALLOWED_ORIGINS` alan adınızı içerdiğini kontrol edin |
+| **Konteyner başlamıyor** | `docker-compose logs sgnl-api` komutunu çalıştırın ve `.env` dosyasının var olduğunu doğrulayın |
+| **n8n bağlantısı başarısız** | `N8N_WEBHOOK_URL` ayarlandığını ve n8n'in çalıştığını doğrulayın |
+| **CORS hataları** | `ALLOWED_ORIGINS` ayarının alan adınızı içerdiğini kontrol edin |
 | **Hız sınırlaması çok katı** | `.env` dosyasında `RATE_LIMIT` değerini artırın |
-| **SSL sertifikası sorunları** | [docs/DEPLOYMENT.md#troubleshooting](docs/DEPLOYMENT.md#troubleshooting) konusuna bakın |
+| **SSL sertifikası sorunları** | [docs/DEPLOYMENT.md#troubleshooting](docs/DEPLOYMENT.md#troubleshooting) başlığına bakın |
 
 ### Hata Ayıklama Komutları
 
 ```bash
-# Kapsayıcı günlüklerini kontrol edin
+# Konteyner günlüklerini izleyin
 docker-compose logs -f sgnl-api
 
-# Kapsayıcı durumunu kontrol edin
+# Konteyner durumunu kontrol edin
 docker ps | grep sgnl-api
 
 # Sağlık uç noktasını test edin
 curl http://localhost:8000/health
 
-# Kapsayıcı kabuğuna girin
+# Konteyner kabuğuna girin
 docker exec -it sgnl-api bash
 
 # Ortam değişkenlerini kontrol edin
@@ -357,13 +353,13 @@ docker exec sgnl-api env | grep -E "API_KEY|N8N"
 | **Hız Sınırı** | 3 istek/dakika/IP (varsayılan) | `RATE_LIMIT` üzerinden yapılandırılabilir |
 | **Maksimum İçerik Boyutu** | 12,000 karakter | `LLM_MAX_CHARS` üzerinden yapılandırılabilir |
 | **Yoğunluk Eşiği** | 0.45 | `DENSITY_THRESHOLD` üzerinden yapılandırılabilir |
-| **Hızlı Arama Gecikmesi** | <1500ms | Ham Tavily sonuçları |
-| **Derin Tarama Gecikmesi** | 2-5s | GPT-OSS-120B analizi ile (Deepinfra/n8n aracılığıyla) |
+| **Hızlı Arama Gecikmesi** | <1500ms | Tavily API ham sonuçları |
+| **Derin Tarama Gecikmesi** | 2-5s | GPT-OSS-120B analizi ile (Deepinfra/n8n üzerinden) |
 
-### Uygulama
+### Uygulama Notları
 
-- **Hız Sınırlama:** Orta katmanda kötüye kullanımı engeller. 429 kodları zorlu soğuma tetikler.
-- **Gizlilik:** Kullanıcı izlemesi yok. Günlük kayıtları geçicidir.
+- **Hız Sınırlama:** Kötüye kullanımı engeller. Orta seviyede 429 hatası zorluk tetikler.
+- **Gizlilik:** Kullanıcı izleme yok. Günlük kayıtları geçicidir.
 - **İçerik Filtreleme:** Düşük yoğunluklu içerikler otomatik olarak atlanır (CPIDR puanlaması).
 
 ---
@@ -393,7 +389,7 @@ Bu proje Apache License 2.0 altında lisanslanmıştır.
 
 ---
 
-## �️ Bakım
+## 👨‍💻 Bakım
 
 **Metin Samet Korkmaz**
 
