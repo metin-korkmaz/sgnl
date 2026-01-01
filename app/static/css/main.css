@@ -1033,6 +1033,7 @@ h3,
     .logo {
         font-size: 24px;
         margin: 0;
+        align-self: center;
     }
 
     .nav-links {
@@ -2104,6 +2105,11 @@ h3,
 
 /* ========== MOBILE-SPECIFIC OVERRIDES ========== */
 @media (max-width: 768px) {
+    /* Hide marquee on mobile */
+    .marquee {
+        display: none;
+    }
+
     /* Show mobile menu elements */
     .mobile-menu-btn {
         display: block;
@@ -2212,13 +2218,15 @@ h3,
 @media (max-width: 768px) {
     /* Mobile Navigation Layout */
     .nav {
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
         gap: 12px;
         padding: 16px 24px;
     }
 
     .logo {
-        align-self: flex-start;
+        align-self: center;
     }
 
     /* Hide desktop nav on mobile */
@@ -2229,14 +2237,7 @@ h3,
     /* Show mobile GitHub button */
     .mobile-github-link {
         display: inline-block;
-        align-self: flex-end;
-    }
-
-    /* Hide manifesto, comparison, features on mobile */
-    .manifesto-section,
-    .comparison-section,
-    .features-section {
-        display: none;
+        align-self: center;
     }
 
     /* Make hero buttons smaller */
