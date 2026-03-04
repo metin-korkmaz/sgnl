@@ -157,6 +157,39 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+# ========== SECURITY HEADERS ==========
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Inject HTTP security headers on every response."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # X-Frame-Options: Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+        
+        # X-Content-Type-Options: Prevent MIME type sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        
+        # Referrer-Policy: Control referrer information
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        # Permissions-Policy: Disable dangerous APIs
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # Content-Security-Policy: Restrict resource loading
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdnjs.cloudflare.com; "
+            "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self'"
+        )
+        response.headers["Content-Security-Policy"] = csp
+        
+        return response
+
+
 app = FastAPI(title="SGNL Extraction Engine", version="2.0.0")
 
 logging.basicConfig(level=logging.INFO)
@@ -189,6 +222,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add security headers middleware (after CORS so headers are not overwritten)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Get the directory where main.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
