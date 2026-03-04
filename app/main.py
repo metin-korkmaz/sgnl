@@ -78,7 +78,12 @@ def get_openai_client():
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """IP-based rate limiting: N requests per minute for search endpoints."""
 
-    PROTECTED_PATHS = ['/fast-search', '/scan-topic', '/deep-scan']
+    # Protected paths: expensive operations requiring external API calls or CPU-intensive processing
+    # /fast-search, /scan-topic, /deep-scan: n8n webhooks + LLM analysis
+    # /extract: HTTP fetch + Trafilatura parsing
+    # /analyze-results: HTTP fetch per result + heuristic scoring
+    # /check-density: CPU-intensive NLP (spaCy, ideadensity)
+    PROTECTED_PATHS = ['/fast-search', '/scan-topic', '/deep-scan', '/extract', '/analyze-results', '/check-density']
 
     def __init__(self, app):
         super().__init__(app)
