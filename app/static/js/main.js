@@ -105,10 +105,16 @@ function createElement(tag, attrs = {}, children = []) {
 }
 
 function escapeHTML(str) {
+    // Safe HTML escaping: textContent prevents script injection, innerHTML reads escaped result
     if (!str) return '';
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+function sanitizeText(str) {
+    // Sanitize user-provided text: trim and ensure string type
+    return String(str || '').trim();
 }
 
 /* ========== TEXT SCRAMBLE/DECRYPT EFFECT ========== */
@@ -566,10 +572,13 @@ function injectIntelligenceReport(aiAnalysis) {
     }
 
     if (findingsEl && aiAnalysis.key_findings) {
-        findingsEl.innerHTML = '';
+        // Clear findings list safely (remove all children)
+        while (findingsEl.firstChild) {
+            findingsEl.removeChild(findingsEl.firstChild);
+        }
         aiAnalysis.key_findings.forEach(finding => {
             const li = document.createElement('li');
-            li.textContent = finding;
+            li.textContent = sanitizeText(finding);
             findingsEl.appendChild(li);
         });
     }
@@ -649,7 +658,10 @@ function showResultsSection() {
 }
 
 function showStatus() {
-    DOM.resultsBody.innerHTML = '';
+    // Clear results body safely (remove all children)
+    while (DOM.resultsBody.firstChild) {
+        DOM.resultsBody.removeChild(DOM.resultsBody.firstChild);
+    }
     DOM.resultsHeader.style.display = 'none';
 
     const statusEl = createElement('div', {
@@ -689,46 +701,48 @@ function cycleStatusMessages() {
 }
 
 function showError(message, errorType = 'generic', retryAfter = 60) {
-    DOM.resultsBody.innerHTML = '';
+    // Clear results body safely (remove all children)
+    while (DOM.resultsBody.firstChild) {
+        DOM.resultsBody.removeChild(DOM.resultsBody.firstChild);
+    }
     DOM.resultsHeader.style.display = 'none';
 
     // Hide analyzing indicator if visible
     hideAnalyzingIndicator();
 
-    let errorHtml = '';
+    let errorEl;
 
     if (errorType === 'no-signal') {
         // NO SIGNAL FOUND - stark brutalist design
-        errorHtml = `
-            <div class="error-state error-state--no-signal">
-                <div class="error-icon">[ / ]</div>
-                <h2 class="error-headline">NO SIGNAL FOUND</h2>
-                <p class="error-subtext">The internet is full of noise, but not this kind.</p>
-                <p class="error-hint">Try a different search vector.</p>
-            </div>
-        `;
+        errorEl = createElement('div', { className: 'error-state error-state--no-signal' });
+        errorEl.appendChild(createElement('div', { className: 'error-icon', textContent: '[ / ]' }));
+        errorEl.appendChild(createElement('h2', { className: 'error-headline', textContent: 'NO SIGNAL FOUND' }));
+        errorEl.appendChild(createElement('p', { className: 'error-subtext', textContent: 'The internet is full of noise, but not this kind.' }));
+        errorEl.appendChild(createElement('p', { className: 'error-hint', textContent: 'Try a different search vector.' }));
     } else if (errorType === 'rate-limit') {
         // RATE LIMIT - aggressive Access Denied style
-        errorHtml = `
-            <div class="error-state error-state--rate-limit">
-                <h2 class="error-headline error-headline--alert">SYSTEM OVERLOAD // 429</h2>
-                <p class="error-subtext">REQUEST LIMIT EXCEEDED. COOLDOWN INITIATED.</p>
-                <p class="error-countdown" id="rate-limit-countdown">
-                    TRY AGAIN IN <span class="countdown-value">${retryAfter}</span> SECONDS.<span class="error-cursor">_</span>
-                </p>
-            </div>
-        `;
+        errorEl = createElement('div', { className: 'error-state error-state--rate-limit' });
+        errorEl.appendChild(createElement('h2', { className: 'error-headline error-headline--alert', textContent: 'SYSTEM OVERLOAD // 429' }));
+        errorEl.appendChild(createElement('p', { className: 'error-subtext', textContent: 'REQUEST LIMIT EXCEEDED. COOLDOWN INITIATED.' }));
+        
+        const countdownP = createElement('p', { className: 'error-countdown', id: 'rate-limit-countdown' });
+        countdownP.appendChild(document.createTextNode('TRY AGAIN IN '));
+        const countdownSpan = createElement('span', { className: 'countdown-value', textContent: String(retryAfter) });
+        countdownP.appendChild(countdownSpan);
+        countdownP.appendChild(document.createTextNode(' SECONDS.'));
+        const cursorSpan = createElement('span', { className: 'error-cursor', textContent: '_' });
+        countdownP.appendChild(cursorSpan);
+        errorEl.appendChild(countdownP);
     } else {
-        // Generic error
-        errorHtml = `
-            <div class="error-state error-state--generic">
-                <h2 class="error-headline">ERROR</h2>
-                <p class="error-subtext">${escapeHTML(message)}</p>
-            </div>
-        `;
+        // Generic error - user message is escaped
+        errorEl = createElement('div', { className: 'error-state error-state--generic' });
+        errorEl.appendChild(createElement('h2', { className: 'error-headline', textContent: 'ERROR' }));
+        const subtext = createElement('p', { className: 'error-subtext' });
+        subtext.textContent = sanitizeText(message);
+        errorEl.appendChild(subtext);
     }
 
-    DOM.resultsBody.innerHTML = errorHtml;
+    DOM.resultsBody.appendChild(errorEl);
 
     // Start countdown AFTER HTML is in DOM
     if (errorType === 'rate-limit') {
@@ -750,7 +764,14 @@ function startRateLimitCountdown(seconds) {
             clearInterval(interval);
             const countdownP = document.getElementById('rate-limit-countdown');
             if (countdownP) {
-                countdownP.innerHTML = 'SYSTEM READY. <span class="retry-link" onclick="retrySearch()">[ RETRY NOW ]</span>';
+                // Clear and rebuild with safe DOM methods (static content only)
+                while (countdownP.firstChild) {
+                    countdownP.removeChild(countdownP.firstChild);
+                }
+                countdownP.appendChild(document.createTextNode('SYSTEM READY. '));
+                const retryLink = createElement('span', { className: 'retry-link', textContent: '[ RETRY NOW ]' });
+                retryLink.addEventListener('click', retrySearch);
+                countdownP.appendChild(retryLink);
             }
         }
     }, 1000);
@@ -764,7 +785,10 @@ function retrySearch() {
 }
 
 function renderResults(data, aiAnalysis = null) {
-    DOM.resultsBody.innerHTML = '';
+    // Clear results body safely (remove all children)
+    while (DOM.resultsBody.firstChild) {
+        DOM.resultsBody.removeChild(DOM.resultsBody.firstChild);
+    }
 
     // Store rendered data for resize handling
     state.lastRenderedData = { results: data, aiAnalysis };
@@ -777,7 +801,11 @@ function renderResults(data, aiAnalysis = null) {
         document.getElementById('ai-best-link').textContent = '';
         document.getElementById('ai-best-link').href = '#';
         document.getElementById('ai-best-reason').textContent = '';
-        document.getElementById('ai-findings').innerHTML = '';
+        // Clear findings list safely (remove all children)
+        const findingsEl = document.getElementById('ai-findings');
+        while (findingsEl.firstChild) {
+            findingsEl.removeChild(findingsEl.firstChild);
+        }
         document.getElementById('ai-signal-score').textContent = '--';
         document.getElementById('ai-verdict').textContent = 'ANALYZING';
     }
@@ -826,10 +854,13 @@ function renderResults(data, aiAnalysis = null) {
         // Render Key Findings
         const findingsEl = document.getElementById('ai-findings');
         if (aiAnalysis.key_findings && aiAnalysis.key_findings.length > 0) {
-            findingsEl.innerHTML = '';
+            // Clear findings list safely (remove all children)
+            while (findingsEl.firstChild) {
+                findingsEl.removeChild(findingsEl.firstChild);
+            }
             aiAnalysis.key_findings.forEach(finding => {
                 const li = document.createElement('li');
-                li.textContent = finding;
+                li.textContent = sanitizeText(finding);
                 findingsEl.appendChild(li);
             });
         }
@@ -914,7 +945,7 @@ function renderResults(data, aiAnalysis = null) {
                 href: item.url,
                 target: '_blank',
                 rel: 'noopener noreferrer',
-                textContent: escapeHTML(item.title || 'Untitled')
+                textContent: sanitizeText(item.title || 'Untitled')
             });
 
             card.appendChild(createElement('div', {
@@ -998,7 +1029,7 @@ function renderResults(data, aiAnalysis = null) {
                 href: item.url,
                 target: '_blank',
                 rel: 'noopener noreferrer',
-                textContent: escapeHTML(item.title || 'Untitled')
+                textContent: sanitizeText(item.title || 'Untitled')
             }));
             row.appendChild(titleCell);
 
