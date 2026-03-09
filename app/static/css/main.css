@@ -12,6 +12,11 @@
     --ink-color: #050505;
     --alert-color: #FF4400;
 
+    /* Signal Level Colors */
+    --signal-high: #00FF94;
+    --signal-medium: #FFD600;
+    --signal-low: #FF4400;
+
     /* Secondary */
     --muted: #666666;
     --grid-line: rgba(0, 0, 0, 0.08);
@@ -29,6 +34,71 @@
 
     /* Hover transition - instant/mechanical */
     --hover-speed: 0ms;
+}
+
+/* ========== DARK MODE THEME ========== */
+[data-theme="dark"] {
+    /* Core Palette - Inverted */
+    --bg-color: #0A0A0A;
+    --ink-color: #F2F0E9;
+    --alert-color: #FF4400;
+
+    /* Secondary - Adjusted for dark */
+    --muted: #888888;
+    --grid-line: rgba(255, 255, 255, 0.08);
+}
+
+/* ========== SKELETON LOADER ========== */
+@keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--skeleton-start) 0%,
+        var(--skeleton-end) 50%,
+        var(--skeleton-start) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite linear;
+    border-radius: 2px;
+}
+
+/* Light mode skeleton colors */
+:root {
+    --skeleton-start: rgba(0, 0, 0, 0.08);
+    --skeleton-end: rgba(0, 0, 0, 0.18);
+}
+
+/* Dark mode skeleton colors */
+[data-theme="dark"] {
+    --skeleton-start: rgba(255, 255, 255, 0.06);
+    --skeleton-end: rgba(255, 255, 255, 0.14);
+}
+
+/* Skeleton variants */
+.skeleton-title {
+    height: 28px;
+    width: 80%;
+    margin-bottom: 12px;
+}
+
+.skeleton-text {
+    height: 16px;
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.skeleton-text:last-child {
+    width: 60%;
+}
+
+.skeleton-card {
+    height: 140px;
+    width: 100%;
+    border: 2px solid var(--ink-color);
 }
 
 /* ========== CSS RESET ========== */
@@ -904,6 +974,47 @@ h3,
 
 .hidden {
     display: none !important;
+}
+
+/* ========== SIGNAL LEVEL COLORS ========== */
+
+/* Signal Level Text Colors */
+.signal-high {
+    color: var(--signal-high);
+}
+
+.signal-medium {
+    color: var(--signal-medium);
+}
+
+.signal-low {
+    color: var(--signal-low);
+}
+
+/* Signal Level Background Colors */
+.signal-high-bg {
+    background-color: var(--signal-high);
+}
+
+.signal-medium-bg {
+    background-color: var(--signal-medium);
+}
+
+.signal-low-bg {
+    background-color: var(--signal-low);
+}
+
+/* Signal Level Border Colors */
+.signal-high-border {
+    border-color: var(--signal-high);
+}
+
+.signal-medium-border {
+    border-color: var(--signal-medium);
+}
+
+.signal-low-border {
+    border-color: var(--signal-low);
 }
 
 /* ========== FEATURES ========== */

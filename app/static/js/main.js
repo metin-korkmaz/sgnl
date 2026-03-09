@@ -35,7 +35,15 @@ const CONFIG = {
         'ANALYZING DEPTH...',
         'COMPILING RESULTS...'
     ],
-    statusCycleDelay: 600
+    statusCycleDelay: 600,
+    analyzingTexts: [
+        'CONTACTING SEARCH API...',
+        'RETRIEVING RESULTS...',
+        'ANALYZING CONTENT QUALITY...',
+        'RUNNING AI ANALYSIS...',
+        'GENERATING INTELLIGENCE REPORT...'
+    ],
+    analyzingCycleDelay: 2000
 };
 
 /* ========== STATE ========== */
@@ -43,6 +51,8 @@ const state = {
     isLoading: false,
     currentStatusIndex: 0,
     statusInterval: null,
+    currentAnalyzingIndex: 0,
+    analyzingInterval: null,
     // Rotator state
     currentRotatorIndex: 0,
     rotatorTimer: null,
@@ -115,6 +125,27 @@ function escapeHTML(str) {
 function sanitizeText(str) {
     // Sanitize user-provided text: trim and ensure string type
     return String(str || '').trim();
+}
+
+/* ========== DARK MODE TOGGLE ========== */
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('sgnl-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('sgnl-theme', newTheme);
+    updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = theme === 'dark' ? '☀' : '☾';
 }
 
 /* ========== TEXT SCRAMBLE/DECRYPT EFFECT ========== */
@@ -338,8 +369,8 @@ async function handleSearch(event) {
     // Show results section
     showResultsSection();
 
-    // Show initial loader
-    showStatus();
+    // Show skeleton loaders
+    showSkeletons();
 
     // ========== PARALLEL FETCH STRATEGY ==========
     // 1. Fast Search: Get raw results instantly (~1-2s)
@@ -373,6 +404,9 @@ async function handleSearch(event) {
         }
 
         if (!fastResponse.ok) {
+            if (fastResponse.status === 504) {
+                throw new Error('Analysis timeout. Try a more specific topic for faster results.');
+            }
             throw new Error(`Fast search failed: HTTP ${fastResponse.status}`);
         }
 
@@ -419,34 +453,51 @@ async function handleSearch(event) {
         const deepResponse = await deepScanPromise;
 
         if (!deepResponse.ok) {
+            if (deepResponse.status === 504) {
+                console.error('[SGNL] Deep scan timeout detected');
+                showError('Analysis timeout. Try a more specific topic for faster results.', 'timeout');
+                hideAnalyzingIndicator();
+                state.isLoading = false;
+                DOM.searchBtn.disabled = false;
+                DOM.searchBtn.textContent = '[ INITIATE SCAN ]';
+                return;
+            }
             throw new Error(`Deep scan failed: HTTP ${deepResponse.status}`);
         }
 
         const deepData = await deepResponse.json();
         console.log('[SGNL] Deep scan results:', deepData);
 
-        // Parse intelligence report
+        // Parse intelligence report - be lenient about format
         let aiAnalysis = null;
-        if (deepData.intelligence_report && deepData.best_source) {
+        
+        // Try full intelligence_report format first
+        if (deepData.intelligence_report) {
             aiAnalysis = {
-                summary: deepData.intelligence_report.executive_summary,
-                key_findings: deepData.intelligence_report.key_findings || [],
-                signal_score: deepData.intelligence_report.signal_score || 0,
+                summary: deepData.intelligence_report.executive_summary || deepData.summary || 'Analysis complete.',
+                key_findings: deepData.intelligence_report.key_findings || deepData.key_findings || [],
+                signal_score: deepData.intelligence_report.signal_score || deepData.signal_score || 50,
                 verdict: deepData.intelligence_report.verdict || 'ANALYZED',
-                best_source: {
-                    url: deepData.best_source.url,
-                    title: deepData.best_source.title,
-                    reason: deepData.best_source.reason
-                }
+                best_source: deepData.best_source || null
             };
-        } else if (deepData.summary) {
-            // Fallback for simpler format
+        } else if (deepData.summary || deepData.key_findings) {
+            // Fallback for simpler format - always show something
             aiAnalysis = {
-                summary: deepData.summary,
+                summary: deepData.summary || 'Analysis complete.',
                 key_findings: deepData.key_findings || [],
                 signal_score: deepData.signal_score || 50,
+                verdict: deepData.verdict || 'ANALYZED',
+                best_source: deepData.best_source || null
+            };
+        } else if (deepData.results && deepData.results.length > 0) {
+            // Last resort: generate report from results if available
+            const topResult = deepData.results[0];
+            aiAnalysis = {
+                summary: `Found ${deepData.results.length} results for analysis.`,
+                key_findings: deepData.results.slice(0, 3).map(r => r.title || 'Result found'),
+                signal_score: topResult.score || topResult.signal_score || 50,
                 verdict: 'ANALYZED',
-                best_source: deepData.best_source
+                best_source: topResult.url ? { url: topResult.url, title: topResult.title } : null
             };
         }
 
@@ -473,9 +524,12 @@ async function handleSearch(event) {
 
 function showAnalyzingIndicator() {
     const indicator = document.getElementById('analyzing-indicator');
-    if (indicator) {
+    const textElement = indicator?.querySelector('.analyzing-text');
+    
+    if (indicator && textElement) {
         indicator.style.display = 'flex';
-        // Pulse animation
+        state.currentAnalyzingIndex = 0;
+        
         if (typeof gsap !== 'undefined') {
             gsap.to(indicator, {
                 opacity: 0.5,
@@ -485,17 +539,76 @@ function showAnalyzingIndicator() {
                 ease: 'power1.inOut'
             });
         }
+        
+        cycleAnalyzingMessages(textElement);
     }
 }
 
 function hideAnalyzingIndicator() {
     const indicator = document.getElementById('analyzing-indicator');
     if (indicator) {
+        if (state.analyzingInterval) {
+            clearInterval(state.analyzingInterval);
+            state.analyzingInterval = null;
+        }
         if (typeof gsap !== 'undefined') {
             gsap.killTweensOf(indicator);
         }
         indicator.style.display = 'none';
     }
+}
+
+function cycleAnalyzingMessages(textElement) {
+    if (!textElement || !state.isLoading) return;
+    
+    const updateMessage = () => {
+        if (!state.isLoading) {
+            if (state.analyzingInterval) {
+                clearInterval(state.analyzingInterval);
+                state.analyzingInterval = null;
+            }
+            return;
+        }
+        
+        const message = CONFIG.analyzingTexts[state.currentAnalyzingIndex];
+        const step = state.currentAnalyzingIndex + 1;
+        const total = CONFIG.analyzingTexts.length;
+        
+        scrambleToText(textElement, `${message} [${step}/${total}]`, () => {
+            state.currentAnalyzingIndex = (state.currentAnalyzingIndex + 1) % CONFIG.analyzingTexts.length;
+        });
+    };
+    
+    updateMessage();
+    state.analyzingInterval = setInterval(updateMessage, CONFIG.analyzingCycleDelay);
+}
+
+/* ========== SKELETON LOADER FUNCTIONS ========== */
+
+function showSkeletons() {
+    const resultsBody = document.getElementById('results-body');
+    if (!resultsBody) return;
+
+    // Clear existing content
+    resultsBody.innerHTML = '';
+
+    // Add skeleton cards (3 cards)
+    for (let i = 0; i < 3; i++) {
+        const skeleton = document.createElement('div');
+        skeleton.className = 'skeleton-card';
+        skeleton.innerHTML = `
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+        `;
+        resultsBody.appendChild(skeleton);
+    }
+}
+
+function hideSkeletons() {
+    const skeletons = document.querySelectorAll('.skeleton-card');
+    skeletons.forEach(s => s.remove());
 }
 
 /* ========== INJECT INTELLIGENCE REPORT ========== */
@@ -733,6 +846,12 @@ function showError(message, errorType = 'generic', retryAfter = 60) {
         const cursorSpan = createElement('span', { className: 'error-cursor', textContent: '_' });
         countdownP.appendChild(cursorSpan);
         errorEl.appendChild(countdownP);
+    } else if (errorType === 'timeout') {
+        errorEl = createElement('div', { className: 'error-state error-state--timeout' });
+        errorEl.appendChild(createElement('div', { className: 'error-icon', textContent: '[ TIMEOUT ]' }));
+        errorEl.appendChild(createElement('h2', { className: 'error-headline error-headline--alert', textContent: 'ANALYSIS TIMEOUT' }));
+        errorEl.appendChild(createElement('p', { className: 'error-subtext', textContent: 'Analysis timeout. Try a more specific topic for faster results.' }));
+        errorEl.appendChild(createElement('p', { className: 'error-hint', textContent: 'Narrow your search to fewer results or use more precise keywords.' }));
     } else {
         // Generic error - user message is escaped
         errorEl = createElement('div', { className: 'error-state error-state--generic' });
@@ -785,6 +904,9 @@ function retrySearch() {
 }
 
 function renderResults(data, aiAnalysis = null) {
+    // Hide skeleton loaders before showing real results
+    hideSkeletons();
+
     // Clear results body safely (remove all children)
     while (DOM.resultsBody.firstChild) {
         DOM.resultsBody.removeChild(DOM.resultsBody.firstChild);
@@ -1108,6 +1230,9 @@ function init() {
     setupGarbageEffect();
     setupSmoothScroll();
     setupRotator();
+
+    document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+    initTheme();
 
     // Animations
     setTimeout(initAnimations, 100);
