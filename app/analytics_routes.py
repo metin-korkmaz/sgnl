@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 import logging
+import json
 
 from analytics_middleware import get_db
 from analytics_models import VisitorLog, PageView, AnalyticsEvent
@@ -49,17 +50,36 @@ async def track_event(req: TrackEventRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/heartbeat")
-async def heartbeat(req: HeartbeatRequest, db: Session = Depends(get_db)):
+async def heartbeat(request: Request, db: Session = Depends(get_db)):
     try:
-        visitor = db.query(VisitorLog).filter(
-            VisitorLog.session_id == req.session_id
-        ).first()
-        
-        if visitor:
-            visitor.last_activity = datetime.utcnow()
+        body = await request.body()
+
+        try:
+            data = json.loads(body.decode('utf-8'))
+        except json.JSONDecodeError as e:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid JSON in request body: {str(e)}"
+            )
+
+        session_id = data.get('session_id')
+        if not session_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="Missing required field: session_id"
+            )
+
+        updated = db.query(VisitorLog).filter(
+            VisitorLog.session_id == session_id
+        ).update({"last_activity": datetime.utcnow()})
+
+        if updated:
             db.commit()
-        
+
         return {"status": "ok"}
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"[ANALYTICS] Heartbeat error: {e}")
         return {"status": "ok"}
@@ -145,7 +165,7 @@ async def get_visitors(
                 {
                     "session_id": v.session_id,
                     "ip_address": v.ip_address,
-                    "user_agent": v.user_agent[:100] if v.user_agent else None,
+                    "user_agent": v.user_agent[:100] if v.user_agent is not None else None,
                     "device_type": v.device_type,
                     "country": v.country,
                     "referrer": v.referrer,

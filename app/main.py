@@ -53,6 +53,7 @@ from models import (
 from analytics_middleware import AnalyticsMiddleware, init_db
 from analytics_routes import router as analytics_router
 from analytics_utils import create_visitor, cleanup_old_visitors
+from cache import get_cache
 
 # OpenAI client (lazy initialization)
 _openai_client = None
@@ -175,6 +176,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # X-Content-Type-Options: Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
         
+        # Strict-Transport-Security: Force HTTPS (HSTS)
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
         # Referrer-Policy: Control referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         
@@ -262,6 +266,8 @@ _CACHED_ENV = {
     'LLM_MAX_CHARS': int(os.getenv('LLM_MAX_CHARS', '12000')),
     'RATE_LIMIT': int(os.getenv('RATE_LIMIT', '3')),
     'RATE_WINDOW_SECONDS': int(os.getenv('RATE_WINDOW_SECONDS', '60')),
+    'FAST_SEARCH_TIMEOUT_SECONDS': float(os.getenv('FAST_SEARCH_TIMEOUT_SECONDS', '30')),
+    'SCAN_TOPIC_TIMEOUT_SECONDS': float(os.getenv('SCAN_TOPIC_TIMEOUT_SECONDS', '180')),
     'CPIDR_WEIGHT': float(os.getenv('CPIDR_WEIGHT', '0.5')),
     'DEPID_WEIGHT': float(os.getenv('DEPID_WEIGHT', '0.3')),
     'READABILITY_WEIGHT': float(os.getenv('READABILITY_WEIGHT', '0.2')),
@@ -321,20 +327,27 @@ async def fast_search(req: ScanTopicRequest):
 
     logger.info(f"[FAST-SEARCH] Topic: {req.topic}, Max Results: {req.max_results}")
 
+    cache = get_cache()
+
+    cached_result = cache.get("fast-search", req.topic, req.max_results)
+    if cached_result is not None:
+        logger.info(f"[FAST-SEARCH] Cache hit for topic: {req.topic}")
+        return cached_result
+
     try:
         from extractor import get_http_client
         client = get_http_client()
         response = await client.post(
             N8N_FAST_SEARCH_URL,
             json={"topic": req.topic, "max_results": req.max_results},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            timeout=get_env('FAST_SEARCH_TIMEOUT_SECONDS', 30.0)
         )
         response.raise_for_status()
 
         result = response.json()
         logger.info(f"[FAST-SEARCH] Raw response: {type(result)}")
 
-        # Handle n8n returning {results: [...]} or direct array
         if isinstance(result, dict) and "results" in result:
             results_array = result["results"]
         elif isinstance(result, list):
@@ -343,11 +356,18 @@ async def fast_search(req: ScanTopicRequest):
             results_array = [result]
 
         logger.info(f"[FAST-SEARCH] Got {len(results_array)} results")
-        return {"results": results_array}
+
+        response_data = {"results": results_array}
+
+        cache_ttl = int(os.getenv('CACHE_TTL_FAST_SEARCH', '3600'))
+        cache.set("fast-search", req.topic, req.max_results, response_data, ttl_seconds=cache_ttl)
+        logger.info(f"[FAST-SEARCH] Cached result for {cache_ttl}s")
+
+        return response_data
 
     except httpx.TimeoutException:
-        logger.error("[FAST-SEARCH] Request timed out")
-        raise HTTPException(status_code=504, detail="Fast search timed out")
+        logger.error("[FAST-SEARCH] Request timed out after 15 seconds")
+        raise HTTPException(status_code=504, detail="Analysis timeout. Try a more specific topic for faster results.")
     except httpx.HTTPStatusError as e:
         logger.error(f"[FAST-SEARCH] Error: {e.response.status_code}")
         raise HTTPException(status_code=e.response.status_code, detail=f"Search error: {e.response.text}")
@@ -362,31 +382,64 @@ async def scan_topic(req: ScanTopicRequest):
     Scan a topic by forwarding request to n8n workflow.
     Returns the JSON response from n8n (includes LLM analysis).
     """
-    if not N8N_WEBHOOK_URL:
-        raise HTTPException(
-            status_code=503,
-            detail="n8n service not configured. Please set N8N_WEBHOOK_URL environment variable."
-        )
-
+    request_start = time.time()
     logger.info(f"[SCAN-TOPIC] Topic: {req.topic}, Max Results: {req.max_results}")
 
+    cache = get_cache()
+
+    cache_check_start = time.time()
+    cached_result = cache.get("scan-topic", req.topic, req.max_results)
+    cache_check_duration = time.time() - cache_check_start
+
+    if cached_result is not None:
+        total_duration = time.time() - request_start
+        logger.info(f"[SCAN-TOPIC] Cache hit for topic: {req.topic} | Cache check: {cache_check_duration:.3f}s | Total: {total_duration:.3f}s")
+        return cached_result
+
     try:
+        http_start = time.time()
         from extractor import get_http_client
         client = get_http_client()
         response = await client.post(
             N8N_WEBHOOK_URL,
             json={"topic": req.topic, "max_results": req.max_results},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            timeout=get_env('SCAN_TOPIC_TIMEOUT_SECONDS', 180.0)
         )
         response.raise_for_status()
+        http_duration = time.time() - http_start
 
+        parse_start = time.time()
         result = response.json()
-        logger.info(f"[SCAN-TOPIC] Got {len(result) if isinstance(result, list) else 1} results")
+        parse_duration = time.time() - parse_start
+
+        cache_set_start = time.time()
+        cache_ttl = int(os.getenv('CACHE_TTL_SCAN_TOPIC', '3600'))
+        cache.set("scan-topic", req.topic, req.max_results, result, ttl_seconds=cache_ttl)
+        cache_set_duration = time.time() - cache_set_start
+
+        total_duration = time.time() - request_start
+        logger.info(f"[SCAN-TOPIC] Got {len(result) if isinstance(result, list) else 1} results | "
+                   f"Cache check: {cache_check_duration:.3f}s | HTTP: {http_duration:.3f}s | "
+                   f"Parse: {parse_duration:.3f}s | Cache set: {cache_set_duration:.3f}s | "
+                   f"Total: {total_duration:.3f}s")
+
         return result
 
     except httpx.TimeoutException:
-        logger.error("[SCAN-TOPIC] Request to n8n timed out")
-        raise HTTPException(status_code=504, detail="Request to n8n workflow timed out")
+        timeout_seconds = get_env('SCAN_TOPIC_TIMEOUT_SECONDS', 180.0)
+        logger.error(f"[SCAN-TOPIC] Request to n8n timed out after {timeout_seconds} seconds")
+        return {
+            "summary": "Deep search took longer than expected, but the raw search results are still available.",
+            "key_findings": [
+                f"Deep analysis timed out after {timeout_seconds} seconds",
+                "Top search results are still shown below",
+                "Reduce max results or narrow the topic if you need a full synthesized report"
+            ],
+            "signal_score": 0,
+            "verdict": "PARTIAL",
+            "timed_out": True
+        }
     except httpx.HTTPStatusError as e:
         logger.error(f"[SCAN-TOPIC] n8n returned error: {e.response.status_code}")
         raise HTTPException(status_code=e.response.status_code, detail=f"n8n error: {e.response.text}")
@@ -407,11 +460,13 @@ async def deep_scan(req: DeepScanRequest):
     4. LLM analysis with GPT-4o (if density passed)
     5. Return structured analysis
     """
+    request_start = time.time()
     logger.info(f"[DEEP-SCAN] URL: {req.url}")
     
-    # Step 1: Fetch and extract content
+    extraction_start = time.time()
     try:
         extraction = await extractor.extract_from_url(req.url, force_depth=True)
+        extraction_duration = time.time() - extraction_start
         
         if extraction.get("length", 0) < 100:
             raise HTTPException(
@@ -431,10 +486,14 @@ async def deep_scan(req: DeepScanRequest):
         logger.error(f"[DEEP-SCAN] Extraction failed: {e}")
         raise HTTPException(status_code=422, detail=f"Failed to extract content: {str(e)}")
     
-    # Step 2: Density Gatekeeper - Skip LLM for low-signal content
+    density_check_start = time.time()
     DENSITY_THRESHOLD = get_env('DENSITY_THRESHOLD', 0.45)
     if density_score < DENSITY_THRESHOLD:
-        logger.info(f"[DEEP-SCAN] Low density ({density_score:.3f} < {DENSITY_THRESHOLD}), skipping LLM")
+        density_check_duration = time.time() - density_check_start
+        total_duration = time.time() - request_start
+        logger.info(f"[DEEP-SCAN] Low density ({density_score:.3f} < {DENSITY_THRESHOLD}) | "
+                   f"Extraction: {extraction_duration:.3f}s | Density check: {density_check_duration:.3f}s | "
+                   f"Total: {total_duration:.3f}s | Skipped LLM")
         return DeepScanResponse(
             url=req.url,
             title=title,
@@ -449,9 +508,8 @@ async def deep_scan(req: DeepScanRequest):
             skipped_llm=True
         )
     
-    # Step 3: Heuristic pre-scoring (fast, no LLM)
+    heuristic_start = time.time()
     try:
-        # We need raw HTML for heuristics, fetch it using shared client
         from extractor import get_http_client
         client = get_http_client()
         html_response = await client.get(req.url)
@@ -459,19 +517,23 @@ async def deep_scan(req: DeepScanRequest):
         
         heuristic_result = heuristic_analyzer.calculate_structure_score(
             raw_html, 
-            title  # Use title as query context
+            title
         )
         heuristic_score = heuristic_result["score"]
+        heuristic_duration = time.time() - heuristic_start
         
     except Exception as e:
         logger.warning(f"[DEEP-SCAN] Heuristic analysis failed: {e}")
         heuristic_score = None
+        heuristic_duration = time.time() - heuristic_start
     
-    # Step 4: LLM Analysis
     openai_client = get_openai_client()
     if openai_client is None:
-        logger.warning("[DEEP-SCAN] OpenAI client not available, using fallback")
-        # Fallback without LLM
+        density_check_duration = time.time() - density_check_start
+        total_duration = time.time() - request_start
+        logger.warning(f"[DEEP-SCAN] OpenAI client not available | "
+                      f"Extraction: {extraction_duration:.3f}s | Density check: {density_check_duration:.3f}s | "
+                      f"Heuristic: {heuristic_duration:.3f}s | Total: {total_duration:.3f}s")
         return DeepScanResponse(
             url=req.url,
             title=title,
@@ -485,7 +547,7 @@ async def deep_scan(req: DeepScanRequest):
         )
     
     try:
-        # Truncate content for token limits
+        llm_start = time.time()
         max_chars = get_env('LLM_MAX_CHARS', 12000)
         truncated_content = content[:max_chars] if len(content) > max_chars else content
         
@@ -499,23 +561,30 @@ async def deep_scan(req: DeepScanRequest):
             max_tokens=500,
             temperature=0.3
         )
+        llm_duration = time.time() - llm_start
         
         result_text = response.choices[0].message.content
         logger.info(f"[DEEP-SCAN] LLM response: {result_text[:200]}...")
         
-        # Parse JSON response
+        parse_start = time.time()
         try:
             llm_result = json.loads(result_text)
         except json.JSONDecodeError as e:
             logger.error(f"[DEEP-SCAN] JSON parse error: {e}")
             raise HTTPException(status_code=500, detail="LLM returned invalid JSON")
+        parse_duration = time.time() - parse_start
         
-        # Map bias rating
         bias_str = llm_result.get("bias_rating", "Neutral")
         try:
             bias_rating = BiasRating(bias_str)
         except ValueError:
             bias_rating = BiasRating.NEUTRAL
+        
+        density_check_duration = time.time() - density_check_start
+        total_duration = time.time() - request_start
+        logger.info(f"[DEEP-SCAN] Complete | Extraction: {extraction_duration:.3f}s | "
+                   f"Density check: {density_check_duration:.3f}s | Heuristic: {heuristic_duration:.3f}s | "
+                   f"LLM: {llm_duration:.3f}s | Parse: {parse_duration:.3f}s | Total: {total_duration:.3f}s")
         
         return DeepScanResponse(
             url=req.url,
@@ -576,11 +645,28 @@ async def extract_content(req: ExtractionRequest, x_api_key: Optional[str] = Hea
 @app.get("/health")
 async def health():
     """Health check endpoint."""
+    cache = get_cache()
+    stats = cache.get_stats()
+
     return {
         "status": "ok",
         "version": "2.0.0",
-        "openai_configured": get_openai_client() is not None
+        "openai_configured": get_openai_client() is not None,
+        "cache": stats
     }
+
+
+@app.get("/cache/stats")
+async def cache_stats():
+    cache = get_cache()
+    return cache.get_stats()
+
+
+@app.post("/cache/clear")
+async def cache_clear():
+    cache = get_cache()
+    cache.clear()
+    return {"status": "ok", "message": "Cache cleared"}
 
 
 @app.on_event("shutdown")

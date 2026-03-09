@@ -7,6 +7,11 @@ services:
       - "${PORT:-8000}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    labels:
+      # Nginx Proxy Manager timeout configuration
+      - "nginx.proxy_connect_timeout=300"
+      - "nginx.proxy_send_timeout=300"
+      - "nginx.proxy_read_timeout=300"
     environment:
       - PYTHONUNBUFFERED=1
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -27,6 +32,12 @@ services:
       - DENSITY_THRESHOLD=${DENSITY_THRESHOLD:-0.45}
       - LLM_MAX_CHARS=${LLM_MAX_CHARS:-12000}
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./analytics.db}
+      # Caching configuration
+      - CACHE_TTL_FAST_SEARCH=${CACHE_TTL_FAST_SEARCH:-3600}
+      - CACHE_TTL_SCAN_TOPIC=${CACHE_TTL_SCAN_TOPIC:-3600}
+      - CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-1000}
+      - FAST_SEARCH_TIMEOUT_SECONDS=${FAST_SEARCH_TIMEOUT_SECONDS:-30}
+      - SCAN_TOPIC_TIMEOUT_SECONDS=${SCAN_TOPIC_TIMEOUT_SECONDS:-180}
     networks:
       - nginx-proxy_default
 

@@ -2,6 +2,7 @@ from fastapi import Request, Response, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import logging
+from typing import Dict, Any
 
 from analytics_middleware import get_db, get_client_ip, parse_device_type
 from analytics_models import VisitorLog, PageView, AnalyticsEvent
@@ -9,7 +10,7 @@ from analytics_models import VisitorLog, PageView, AnalyticsEvent
 logger = logging.getLogger(__name__)
 
 
-async def create_visitor(request: Request, session_id: str):
+async def create_visitor(request: Request, session_id: str) -> VisitorLog:
     db: Session = next(get_db())
     
     try:
@@ -55,7 +56,7 @@ async def create_visitor(request: Request, session_id: str):
         db.close()
 
 
-def cleanup_old_visitors(db: Session, days: int = 90):
+def cleanup_old_visitors(db: Session, days: int = 90) -> Dict[str, int]:
     cutoff = datetime.utcnow() - timedelta(days=days)
     
     deleted = db.query(VisitorLog).filter(

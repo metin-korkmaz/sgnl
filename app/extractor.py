@@ -12,6 +12,7 @@ import logging
 import re
 from urllib.parse import urlparse
 import os
+import time
 
 # ideadensity for content density scoring (CPIDR and DEPID metrics)
 try:
@@ -34,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 # Configure Trafilatura for better extraction
 TRAFILATURA_CONFIG = use_config()
-TRAFILATURA_CONFIG.set("DEFAULT", "EXTRACTION_TIMEOUT", "30")
+TRAFILATURA_CONFIG.set("DEFAULT", "EXTRACTION_TIMEOUT", "15")
 
 # Shared HTTP client with connection pooling for better performance
 _http_client = None
@@ -49,7 +50,7 @@ def get_http_client() -> httpx.AsyncClient:
             max_connections=50,
             keepalive_expiry=30.0
         )
-        timeout = httpx.Timeout(30.0, connect=10.0)
+        timeout = httpx.Timeout(15.0, connect=10.0)
         _http_client = httpx.AsyncClient(
             limits=limits,
             timeout=timeout,
@@ -268,15 +269,20 @@ class ContentExtractor:
         Returns:
             Dict with extracted content and metadata
         """
+        extract_start = time.time()
         logger.info(f"[EXTRACTOR] Starting extraction for: {url}")
 
         try:
-            # Fetch the page
+            fetch_start = time.time()
             html = await self._fetch_page(url)
+            fetch_duration = time.time() - fetch_start
+            
             if not html:
+                total_duration = time.time() - extract_start
+                logger.error(f"[EXTRACTOR] Failed to fetch page | Fetch: {fetch_duration:.3f}s | Total: {total_duration:.3f}s")
                 return self._error_response(url, "Failed to fetch page")
 
-            # Extract content using Trafilatura
+            trafilatura_start = time.time()
             extracted = trafilatura.extract(
                 html,
                 include_comments=False,
@@ -285,37 +291,47 @@ class ContentExtractor:
                 output_format="txt",
                 config=TRAFILATURA_CONFIG,
             )
+            trafilatura_duration = time.time() - trafilatura_start
 
             if not extracted:
+                total_duration = time.time() - extract_start
+                logger.error(f"[EXTRACTOR] No content extracted | Fetch: {fetch_duration:.3f}s | Trafilatura: {trafilatura_duration:.3f}s | Total: {total_duration:.3f}s")
                 return self._error_response(url, "No content extracted")
 
-            # Get metadata
+            metadata_start = time.time()
             metadata = trafilatura.extract_metadata(html)
             title = metadata.title if metadata else self._extract_title_fallback(html)
-            
-            # Calculate signal score
+            metadata_duration = time.time() - metadata_start
+
+            signal_start = time.time()
             signal_score = self._calculate_signal_score(
                 content=extracted,
                 url=url,
                 title=title or ""
             )
+            signal_duration = time.time() - signal_start
 
-            # Calculate density scores (CPIDR, DEPID, and combined)
+            density_start = time.time()
             cpidr_score = calculate_density(extracted)
             depid_score = calculate_depid_density(extracted)
             readability_scores = calculate_readability_scores(extracted)
+            density_duration = time.time() - density_start
 
-            # Get density threshold for LLM skip decision
             density_threshold = float(os.getenv('DENSITY_THRESHOLD', '0.45'))
 
-            # Calculate combined density score
+            combined_start = time.time()
             combined_density = calculate_combined_density(
                 cpidr_density=cpidr_score,
                 depid_density=depid_score,
                 readability=readability_scores
             )
+            combined_duration = time.time() - combined_start
 
-            logger.info(f"[EXTRACTOR] CPIDR: {cpidr_score:.3f}, DEPID: {depid_score}, Combined: {combined_density:.3f}")
+            total_duration = time.time() - extract_start
+            logger.info(f"[EXTRACTOR] Success: {len(extracted)} chars, signal={signal_score:.2f}, density={cpidr_score:.3f} | "
+                       f"Fetch: {fetch_duration:.3f}s | Trafilatura: {trafilatura_duration:.3f}s | "
+                       f"Metadata: {metadata_duration:.3f}s | Signal: {signal_duration:.3f}s | "
+                       f"Density: {density_duration:.3f}s | Combined: {combined_duration:.3f}s | Total: {total_duration:.3f}s")
 
             result = {
                 "url": url,
@@ -329,11 +345,11 @@ class ContentExtractor:
                 "readability_score": readability_scores,
             }
 
-            logger.info(f"[EXTRACTOR] Success: {len(extracted)} chars, signal={signal_score:.2f}, density={cpidr_score:.3f}")
             return result
 
         except Exception as e:
-            logger.error(f"[EXTRACTOR] Error: {str(e)}")
+            total_duration = time.time() - extract_start
+            logger.error(f"[EXTRACTOR] Error: {str(e)} | Total: {total_duration:.3f}s")
             return self._error_response(url, str(e))
 
     async def _fetch_page(self, url: str) -> Optional[str]:
