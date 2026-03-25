@@ -165,3 +165,36 @@ class TestRedisRateLimiter:
         call_args = mock_redis.expire.call_args
         assert call_args[0][0] == "rate_limit:192.168.1.1"
         assert call_args[0][1] == 60
+
+    @pytest.mark.asyncio
+    async def test_redis_connection_error_returns_allowed(self, rate_limiter, mock_redis):
+        """Fail-open: ConnectionError should allow request with error info."""
+        from redis.exceptions import ConnectionError
+        mock_redis.zremrangebyscore.side_effect = ConnectionError("Connection refused")
+
+        is_allowed, metadata = await rate_limiter.is_allowed("192.168.1.1")
+
+        assert is_allowed is True
+        assert "error" in metadata or metadata.get("remaining") == rate_limiter.limit
+
+    @pytest.mark.asyncio
+    async def test_redis_timeout_returns_allowed(self, rate_limiter, mock_redis):
+        """Fail-open: TimeoutError should allow request."""
+        from redis.exceptions import TimeoutError
+        mock_redis.zremrangebyscore.side_effect = TimeoutError("Connection timed out")
+
+        is_allowed, metadata = await rate_limiter.is_allowed("192.168.1.1")
+
+        assert is_allowed is True
+
+    @pytest.mark.asyncio
+    async def test_redis_unavailable_logs_warning(self, rate_limiter, mock_redis, caplog):
+        """Fail-open: Redis errors should be logged but not raised."""
+        from redis.exceptions import ConnectionError
+        mock_redis.zremrangebyscore.side_effect = ConnectionError("Redis unavailable")
+
+        with caplog.at_level("WARNING"):
+            is_allowed, _ = await rate_limiter.is_allowed("192.168.1.1")
+
+        assert is_allowed is True
+        assert "redis" in caplog.text.lower() or "connection" in caplog.text.lower() or "rate_limiter" in caplog.text.lower()
