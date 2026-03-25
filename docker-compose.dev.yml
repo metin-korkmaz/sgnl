@@ -26,9 +26,37 @@ services:
       - VIRTUAL_PORT=${PORT:-8000}
       - LETSENCRYPT_HOST=${LETSENCRYPT_HOST:-your-domain.com}
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-admin@your-domain.com}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - CACHE_TTL_FAST_SEARCH=${CACHE_TTL_FAST_SEARCH:-3600}
+      - CACHE_TTL_SCAN_TOPIC=${CACHE_TTL_SCAN_TOPIC:-3600}
+      - CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-1000}
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - sgnl-net
       - nginx-proxy_default
+
+  redis:
+    image: redis:7-alpine
+    container_name: sgnl-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - sgnl-net
+
+volumes:
+  redis_data:
 
 networks:
   sgnl-net:
