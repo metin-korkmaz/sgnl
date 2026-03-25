@@ -1,0 +1,52 @@
+================================================================================
+PYTEST TEST RESULTS - Rate Limiter Integration Verification
+================================================================================
+Date: Wed Mar 25 2026
+Command: PYTHONPATH=/root/sgnl-backend/app python3 -m pytest app/tests/ -v --tb=short
+
+================================================================================
+RATE LIMITER TESTS - ALL PASSED ✅
+================================================================================
+
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_init PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_is_allowed_under_limit PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_is_allowed_at_limit PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_is_allowed_over_limit PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_remaining_count PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_reset_time PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_sliding_window PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_different_ips PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_reset PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_key_formatting PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_ttl_set_on_key PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_redis_connection_error_returns_allowed PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_redis_timeout_returns_allowed PASSED
+app/tests/test_rate_limiter.py::TestRedisRateLimiter::test_redis_unavailable_logs_warning PASSED
+
+================================================================================
+RATE LIMIT MIDDLEWARE TESTS - ALL PASSED ✅
+================================================================================
+
+app/tests/test_main.py::TestRateLimitMiddleware::test_init PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_clean_old_requests_no_old_requests PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_clean_old_requests_with_old_requests PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_clean_old_requests_empty_dict PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_get_client_ip_with_x_forwarded_for PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_get_client_ip_without_x_forwarded_for PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_get_client_ip_unknown PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_dispatch_unprotected_path PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_dispatch_under_limit PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_dispatch_at_limit PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_dispatch_over_limit PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_dispatch_with_old_requests_cleaned PASSED
+app/tests/test_main.py::TestRateLimitMiddleware::test_environment_variable_rate_limit PASSED
+
+================================================================================
+SUMMARY
+================================================================================
+Total tests run: 216
+Rate limiter tests: 14 PASSED
+Rate limit middleware tests: 13 PASSED
+
+Note: Some unrelated tests failed (extractor, security, analytics tests) but
+all rate limiting related tests passed successfully.
