@@ -535,7 +535,7 @@ async def serve_frontend(request: Request):
     if not session_id:
         session_id = f"sess_{int(time.time())}_{secrets.token_hex(8)}"
 
-    response = templates.TemplateResponse("index.html", {"request": request})
+    response = templates.TemplateResponse(request, "index.html")
 
     # Set session cookie
     response.set_cookie(
