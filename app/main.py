@@ -49,9 +49,6 @@ from services.analyzer import heuristic_analyzer
 from security.api_key import require_api_key
 from security.url_validator import validate_url
 from models import (
-    DeepScanRequest,
-    DeepScanResponse,
-    BiasRating,
     ScanTopicRequest,
     ExtractionRequest,
     ExtractionResponse,
@@ -68,25 +65,6 @@ try:
 except ImportError:
     RedisRateLimiter = None
 
-# OpenAI client (lazy initialization)
-_openai_client = None
-OPENAI_AVAILABLE = False
-
-
-def get_openai_client():
-    """Get or create OpenAI client (lazy initialization)."""
-    global _openai_client, OPENAI_AVAILABLE
-    if not OPENAI_AVAILABLE:
-        try:
-            from openai import AsyncOpenAI
-            _openai_client = AsyncOpenAI()
-            OPENAI_AVAILABLE = True
-            logger.info("[OPENAI] Client initialized")
-        except Exception as e:
-            OPENAI_AVAILABLE = False
-            logger.warning(f"[OPENAI] Failed to initialize: {e}")
-            _openai_client = None
-    return _openai_client if OPENAI_AVAILABLE else None
 
 # ========== RATE LIMITER ==========
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -477,16 +455,6 @@ N8N_FAST_SEARCH_URL = config.N8N_FAST_SEARCH_URL
 if not N8N_WEBHOOK_URL or not N8N_FAST_SEARCH_URL:
     logger.warning("[CONFIG] n8n webhook URLs not configured. LLM endpoints may not work.")
 
-# LLM System Prompt
-DEEP_SCAN_SYSTEM_PROMPT = """ROLE: You are SGNL, a ruthless technical editor. Analyze this text. Ignore marketing fluff.
-OUTPUT JSON ONLY: { "summary": "One sentence thesis", "key_findings": ["Fact 1", "Fact 2"], "technical_depth_score": 0-100, "bias_rating": "Neutral|Promotional|Biased|Sponsored" }
-Rules:
-- summary: Single sentence capturing the core thesis
-- key_findings: 2-5 concrete technical facts, no fluff
-- technical_depth_score: 0=empty, 50=average, 80+=expert-level
-- bias_rating: Neutral=objective, Promotional=sells product, Biased=one-sided, Sponsored=paid content"""
-
-
 def get_env(key: str, default=None):
     """Get config value by key (backward compatibility).
 
@@ -665,163 +633,6 @@ async def scan_topic(req: ScanTopicRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/deep-scan", response_model=DeepScanResponse)
-async def deep_scan(req: DeepScanRequest):
-    """
-    Deep scan a URL with LLM analysis.
-    
-    Workflow:
-    1. Fetch & clean content with Trafilatura
-    2. Check content density (CPIDR) - skip LLM if < 0.45
-    3. Run heuristic pre-scoring
-    4. LLM analysis with GPT-4o (if density passed)
-    5. Return structured analysis
-    """
-    request_start = time.time()
-    logger.info(f"[DEEP-SCAN] URL: {req.url}")
-    
-    extraction_start = time.time()
-    try:
-        extraction = await extractor.extract_from_url(req.url, force_depth=True)
-        extraction_duration = time.time() - extraction_start
-        
-        if extraction.get("length", 0) < 100:
-            raise HTTPException(
-                status_code=422, 
-                detail=f"Insufficient content extracted: {extraction.get('error', 'Too short')}"
-            )
-        
-        content = extraction["content"]
-        title = extraction.get("title", "Untitled")
-        density_score = extraction.get("density_score", 0.5)
-        depid_density = extraction.get("depid_density")
-        readability_scores = extraction.get("readability_score", {})
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"[DEEP-SCAN] Extraction failed: {e}")
-        raise HTTPException(status_code=422, detail=f"Failed to extract content: {str(e)}")
-    
-    density_check_start = time.time()
-    DENSITY_THRESHOLD = get_env('DENSITY_THRESHOLD', 0.45)
-    if density_score < DENSITY_THRESHOLD:
-        density_check_duration = time.time() - density_check_start
-        total_duration = time.time() - request_start
-        logger.info(f"[DEEP-SCAN] Low density ({density_score:.3f} < {DENSITY_THRESHOLD}) | "
-                   f"Extraction: {extraction_duration:.3f}s | Density check: {density_check_duration:.3f}s | "
-                   f"Total: {total_duration:.3f}s | Skipped LLM")
-        return DeepScanResponse(
-            url=req.url,
-            title=title,
-            summary=f"Low Signal: Content filtered (density={density_score:.2f})",
-            key_findings=["Content density below threshold (SKIPPED_LLM)", f"Density score: {density_score:.3f}"],
-            technical_depth_score=0,
-            bias_rating=BiasRating.NEUTRAL,
-            heuristic_score=None,
-            density_score=density_score,
-            depid_density=depid_density,
-            readability_score=readability_scores,
-            skipped_llm=True
-        )
-    
-    heuristic_start = time.time()
-    try:
-        # Use raw_html from extraction result instead of re-fetching
-        raw_html = extraction.get("raw_html", "")
-        
-        heuristic_result = heuristic_analyzer.calculate_structure_score(
-            raw_html, 
-            title
-        )
-        heuristic_score = heuristic_result["score"]
-        heuristic_duration = time.time() - heuristic_start
-        
-    except Exception as e:
-        logger.warning(f"[DEEP-SCAN] Heuristic analysis failed: {e}")
-        heuristic_score = None
-        heuristic_duration = time.time() - heuristic_start
-    
-    openai_client = get_openai_client()
-    if openai_client is None:
-        density_check_duration = time.time() - density_check_start
-        total_duration = time.time() - request_start
-        logger.warning(f"[DEEP-SCAN] OpenAI client not available | "
-                      f"Extraction: {extraction_duration:.3f}s | Density check: {density_check_duration:.3f}s | "
-                      f"Heuristic: {heuristic_duration:.3f}s | Total: {total_duration:.3f}s")
-        return DeepScanResponse(
-            url=req.url,
-            title=title,
-            summary=f"Content extracted from {title}",
-            key_findings=["LLM analysis unavailable - OpenAI API key not configured"],
-            technical_depth_score=heuristic_score or 50,
-            bias_rating=BiasRating.NEUTRAL,
-            heuristic_score=heuristic_score,
-            density_score=density_score,
-            skipped_llm=True
-        )
-    
-    try:
-        llm_start = time.time()
-        max_chars = get_env('LLM_MAX_CHARS', 12000)
-        truncated_content = content[:max_chars] if len(content) > max_chars else content
-        
-        response = await openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": DEEP_SCAN_SYSTEM_PROMPT},
-                {"role": "user", "content": f"Title: {title}\n\nContent:\n{truncated_content}"}
-            ],
-            response_format={"type": "json_object"},
-            max_tokens=500,
-            temperature=0.3
-        )
-        llm_duration = time.time() - llm_start
-        
-        result_text = response.choices[0].message.content
-        logger.info(f"[DEEP-SCAN] LLM response: {result_text[:200]}...")
-        
-        parse_start = time.time()
-        try:
-            llm_result = json.loads(result_text)
-        except json.JSONDecodeError as e:
-            logger.error(f"[DEEP-SCAN] JSON parse error: {e}")
-            raise HTTPException(status_code=500, detail="LLM returned invalid JSON")
-        parse_duration = time.time() - parse_start
-        
-        bias_str = llm_result.get("bias_rating", "Neutral")
-        try:
-            bias_rating = BiasRating(bias_str)
-        except ValueError:
-            bias_rating = BiasRating.NEUTRAL
-        
-        density_check_duration = time.time() - density_check_start
-        total_duration = time.time() - request_start
-        logger.info(f"[DEEP-SCAN] Complete | Extraction: {extraction_duration:.3f}s | "
-                   f"Density check: {density_check_duration:.3f}s | Heuristic: {heuristic_duration:.3f}s | "
-                   f"LLM: {llm_duration:.3f}s | Parse: {parse_duration:.3f}s | Total: {total_duration:.3f}s")
-        
-        return DeepScanResponse(
-            url=req.url,
-            title=title,
-            summary=llm_result.get("summary", "No summary generated"),
-            key_findings=llm_result.get("key_findings", []),
-            technical_depth_score=llm_result.get("technical_depth_score", 50),
-            bias_rating=bias_rating,
-            heuristic_score=heuristic_score,
-            density_score=density_score,
-            depid_density=depid_density,
-            readability_score=readability_scores,
-            skipped_llm=False
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"[DEEP-SCAN] LLM analysis failed: {e}")
-        raise HTTPException(status_code=500, detail=f"LLM analysis failed: {str(e)}")
-
-
 @app.post("/extract", response_model=ExtractionResponse)
 async def extract_content(req: ExtractionRequest, x_api_key: Optional[str] = Header(None)):
     """
@@ -881,7 +692,6 @@ async def health():
     return {
         "status": "ok",
         "version": "2.0.0",
-        "openai_configured": get_openai_client() is not None,
         "cache": stats,
         "redis": redis_status
     }
