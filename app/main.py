@@ -532,7 +532,11 @@ async def fast_search(req: ScanTopicRequest):
         )
         response.raise_for_status()
 
-        result = response.json()
+        try:
+            result = response.json()
+        except Exception:
+            import json
+            result = json.loads(response.content.decode("utf-8", errors="replace"))
         logger.info(f"[FAST-SEARCH] Raw response: {type(result)}")
 
         if isinstance(result, dict) and "results" in result:
@@ -597,7 +601,11 @@ async def scan_topic(req: ScanTopicRequest):
         http_duration = time.time() - http_start
 
         parse_start = time.time()
-        result = response.json()
+        try:
+            result = response.json()
+        except Exception:
+            import json
+            result = json.loads(response.content.decode("utf-8", errors="replace"))
         parse_duration = time.time() - parse_start
 
         cache_set_start = time.time()
