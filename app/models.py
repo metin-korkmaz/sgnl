@@ -36,6 +36,7 @@ class ScanTopicRequest(BaseModel):
 
 class ExtractionRequest(BaseModel):
     url: str
+    force_depth: bool = False
 
 
 class ExtractionResponse(BaseModel):
