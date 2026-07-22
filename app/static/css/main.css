@@ -823,9 +823,9 @@ h3,
 .search-input {
     flex: 1;
     font-family: var(--font-mono);
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
-    padding: 24px;
+    padding: 24px 16px;
     background: transparent;
     border: none;
     color: var(--ink-color);
@@ -844,11 +844,11 @@ h3,
 
 .search-btn {
     font-family: var(--font-display);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 0 16px;
+    padding: 0 24px;
     background: var(--alert-color);
     color: var(--ink-color);
     border: none;
@@ -857,8 +857,8 @@ h3,
     transition: all 0.1s;
     white-space: nowrap;
     flex-shrink: 0;
-    max-width: 100px;
-    /* Prevents button from being squished */
+    width: auto;
+    min-width: 80px;
 }
 
 .search-btn:hover {
@@ -1398,54 +1398,25 @@ h3,
     }
 }
 
-    .cmd-prompt {
-        padding: 16px 0 16px 16px;
-        font-size: 18px;
-        width: auto;
-    }
-
-    .search-input {
-        flex: 1;
-        /* Take remaining space on the line */
-        width: auto;
-        /* Allow flex to control width */
-        font-size: 18px;
-        padding: 16px;
-        min-width: 100px;
-        /* Prevent being squashed too small */
-    }
-
-    .search-btn {
-        width: 100%;
-        border-left: none;
-        border-top: 4px solid var(--ink-color);
-        padding: 20px;
-        min-height: 56px;
-        font-size: 18px;
-        max-width: none;
-        /* Better touch target */
-    }
-
-    .command-box {
-        box-shadow: 8px 8px 0 var(--alert-color);
-    }
-}
 
 /* --- SEARCH INPUT: Desktop (inline layout, balanced sizing) --- */
 @media (min-width: 769px) {
     .search-btn {
-        padding: 0 16px;
-        font-size: 12px;
-        max-width: 100px;
+        padding: 0 28px;
+        font-size: 14px;
+        width: auto;
+        min-width: 90px;
     }
 
     .search-input {
         flex: 1;
         min-width: 0;
+        font-size: 20px;
     }
 
     .cmd-prompt {
         padding: 24px 0 24px 24px;
+        font-size: 20px;
     }
 }
 
