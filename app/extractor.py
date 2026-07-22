@@ -118,9 +118,15 @@ async def calculate_density(text: str) -> float:
         logger.warning(f"[DENSITY] Cache lookup failed: {e}")
 
     try:
-        # CPIDR returns a float representing propositional density
+        # CPIDR returns either a float (density) or a tuple
+        # (proposition_count, word_count, density, error)
         # Offload to thread pool to avoid blocking event loop
-        density = await asyncio.to_thread(cpidr, text)
+        density_result = await asyncio.to_thread(cpidr, text)
+        # Extract density float from result (handle both tuple and float returns)
+        if isinstance(density_result, (tuple, list)):
+            density = density_result[2]
+        else:
+            density = density_result
         # Normalize to 0.0-1.0 range (CPIDR typically ranges 0-1 but can vary)
         normalized = max(0.0, min(1.0, float(density)))
 

@@ -287,47 +287,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-        # Check for authentication bypass
-        if self._is_authenticated(request):
-            logger.debug(f"[RATE-LIMIT] Authenticated request bypassed rate limit")
-            return await call_next(request)
-
-        # Get client IP with trusted proxy validation and IPv6 normalization
-        direct_ip = request.client.host if request.client else "unknown"
-        normalized_direct = self._normalize_ip(direct_ip)
-
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded and self._is_trusted_proxy(normalized_direct):
-            client_ip = forwarded.split(",")[0].strip()
-            ip = self._normalize_ip(client_ip)
-        else:
-            ip = normalized_direct
-
-        self._clean_old_requests(ip)
-
-        if len(self.request_counts[ip]) >= self.RATE_LIMIT:
-            # Calculate retry time
-            oldest_request = min(self.request_counts[ip])
-            retry_after = int(self.WINDOW_SECONDS - (time.time() - oldest_request))
-
-            logger.warning(f"[RATE-LIMIT] IP {ip} exceeded limit. Retry after {retry_after}s")
-
-            return Response(
-                content=json.dumps({
-                    "error": "RATE_LIMIT_EXCEEDED",
-                    "message": "Too many requests. Please wait before trying again.",
-                    "retry_after": retry_after
-                }),
-                status_code=429,
-                media_type="application/json",
-                headers={"Retry-After": str(retry_after)}
-            )
-
-        # Record this request
-        self.request_counts[ip].append(time.time())
-
-        return await call_next(request)
-
 
 # ========== REQUEST SIZE LIMIT ==========
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
@@ -888,7 +847,8 @@ async def extract_content(req: ExtractionRequest, x_api_key: Optional[str] = Hea
             extraction_method="trafilatura",
             density_score=result.get("density_score"),
             depid_density=result.get("depid_density"),
-            readability_score=result.get("readability_score")
+            readability_score=result.get("readability_score"),
+            signal_score=result.get("signal_score")
         )
 
     except HTTPException:

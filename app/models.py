@@ -26,6 +26,7 @@ class DeepScanResponse(BaseModel):
     density_score: Optional[float] = None
     depid_density: Optional[float] = None
     readability_score: Optional[Dict[str, float]] = None
+    signal_score: Optional[float] = None
     skipped_llm: bool = False
 
 
@@ -50,3 +51,4 @@ class ExtractionResponse(BaseModel):
     density_score: Optional[float] = None
     depid_density: Optional[float] = None
     readability_score: Optional[Dict[str, float]] = None
+    signal_score: Optional[float] = None
