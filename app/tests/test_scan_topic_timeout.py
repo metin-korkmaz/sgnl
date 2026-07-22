@@ -2,6 +2,7 @@ import httpx
 
 import extractor
 import app.main as main_module
+from unittest.mock import patch
 
 
 class MockTimeoutClient:
@@ -12,20 +13,24 @@ class MockTimeoutClient:
 class TestScanTopicTimeout:
     def test_scan_topic_timeout_returns_partial_response(self, client, monkeypatch):
         original_url = main_module.N8N_WEBHOOK_URL
-        original_timeout = main_module._CACHED_ENV.get("SCAN_TOPIC_TIMEOUT_SECONDS")
 
         main_module.N8N_WEBHOOK_URL = "https://example.com/webhook"
-        main_module._CACHED_ENV["SCAN_TOPIC_TIMEOUT_SECONDS"] = 120.0
         monkeypatch.setattr(extractor, "get_http_client", lambda: MockTimeoutClient())
+
+        # Mock get_env to return 120.0 for SCAN_TOPIC_TIMEOUT_SECONDS
+        original_get_env = main_module.get_env
+
+        def mock_get_env(key, default=None):
+            if key == "SCAN_TOPIC_TIMEOUT_SECONDS":
+                return 120.0
+            return original_get_env(key, default)
+
+        monkeypatch.setattr(main_module, "get_env", mock_get_env)
 
         try:
             response = client.post("/scan-topic", json={"topic": "test topic", "max_results": 5})
         finally:
             main_module.N8N_WEBHOOK_URL = original_url
-            if original_timeout is None:
-                main_module._CACHED_ENV.pop("SCAN_TOPIC_TIMEOUT_SECONDS", None)
-            else:
-                main_module._CACHED_ENV["SCAN_TOPIC_TIMEOUT_SECONDS"] = original_timeout
 
         assert response.status_code == 200
 

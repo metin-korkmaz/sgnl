@@ -10,6 +10,7 @@ import json
 from analytics_middleware import get_db
 from analytics_models import VisitorLog, PageView, AnalyticsEvent
 from analytics_utils import cleanup_old_visitors
+from security.api_key import require_api_key
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -33,7 +34,7 @@ class PageViewRequest(BaseModel):
 
 
 @router.post("/track")
-async def track_event(req: TrackEventRequest, db: Session = Depends(get_db)):
+async def track_event(req: TrackEventRequest, db: Session = Depends(get_db), _: str = Depends(require_api_key)):
     try:
         event = AnalyticsEvent(
             session_id=req.session_id,
@@ -86,7 +87,7 @@ async def heartbeat(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/pageview")
-async def record_pageview(req: PageViewRequest, db: Session = Depends(get_db)):
+async def record_pageview(req: PageViewRequest, db: Session = Depends(get_db), _: str = Depends(require_api_key)):
     try:
         pageview = PageView(
             session_id=req.session_id,
@@ -103,7 +104,7 @@ async def record_pageview(req: PageViewRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/stats")
-async def get_stats(db: Session = Depends(get_db)):
+async def get_stats(db: Session = Depends(get_db), _: str = Depends(require_api_key)):
     try:
         now = datetime.utcnow()
         last_7_days = now - timedelta(days=7)
@@ -153,7 +154,8 @@ async def get_stats(db: Session = Depends(get_db)):
 async def get_visitors(
     limit: int = 100,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: str = Depends(require_api_key)
 ):
     try:
         visitors = db.query(VisitorLog).order_by(
@@ -184,7 +186,7 @@ async def get_visitors(
 
 
 @router.post("/cleanup")
-async def cleanup_data(days: int = 90, db: Session = Depends(get_db)):
+async def cleanup_data(days: int = 90, db: Session = Depends(get_db), _: str = Depends(require_api_key)):
     try:
         result = cleanup_old_visitors(db, days)
         return {"status": "ok", "deleted": result}

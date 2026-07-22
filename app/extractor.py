@@ -11,8 +11,13 @@ from typing import Optional, Dict, Any, Tuple
 import logging
 import re
 from urllib.parse import urlparse
-import os
 import time
+import asyncio
+import hashlib
+
+from config import config
+from security.url_validator import validate_url
+from cache import get_cache
 
 # ideadensity for content density scoring (CPIDR and DEPID metrics)
 try:
@@ -76,9 +81,10 @@ async def close_http_client():
         logger.info("[HTTP] Shared client closed")
 
 
-def calculate_density(text: str) -> float:
+async def calculate_density(text: str) -> float:
     """
     Calculate content density using CPIDR (Content Propositional Idea Density Ratio).
+    Results are cached by content hash to avoid redundant calculations.
 
     Args:
         text: The text content to analyze
@@ -96,11 +102,36 @@ def calculate_density(text: str) -> float:
         logger.warning("[DENSITY] ideadensity library not available, returning default 0.5")
         return 0.5
 
+    # Generate SHA-256 hash of content for cache key
+    content_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
+    cache_key_prefix = "cpidr"
+
+    # Check cache first
+    try:
+        cache = get_cache()
+        cached_result = cache.get(cache_key_prefix, content_hash, 0)
+        if cached_result is not None:
+            logger.debug(f"[DENSITY] Cache hit for CPIDR: {content_hash[:16]}...")
+            return float(cached_result)
+        logger.debug(f"[DENSITY] Cache miss for CPIDR: {content_hash[:16]}...")
+    except Exception as e:
+        logger.warning(f"[DENSITY] Cache lookup failed: {e}")
+
     try:
         # CPIDR returns a float representing propositional density
-        density = cpidr(text)
+        # Offload to thread pool to avoid blocking event loop
+        density = await asyncio.to_thread(cpidr, text)
         # Normalize to 0.0-1.0 range (CPIDR typically ranges 0-1 but can vary)
         normalized = max(0.0, min(1.0, float(density)))
+
+        # Cache the result with 1 hour TTL
+        try:
+            cache = get_cache()
+            cache.set(cache_key_prefix, content_hash, 0, normalized, 3600)
+            logger.debug(f"[DENSITY] Cached CPIDR result: {content_hash[:16]}... = {normalized}")
+        except Exception as e:
+            logger.warning(f"[DENSITY] Cache store failed: {e}")
+
         logger.debug(f"[DENSITY] Raw={density}, Normalized={normalized}")
         return normalized
     except Exception as e:
@@ -108,9 +139,10 @@ def calculate_density(text: str) -> float:
         return 0.5
 
 
-def calculate_depid_density(text: str) -> Optional[float]:
+async def calculate_depid_density(text: str) -> Optional[float]:
     """
     Calculate DEPID (Dependency-based Propositional Idea Density).
+    Results are cached by content hash to avoid redundant calculations.
 
     Args:
         text: The text content to analyze
@@ -125,10 +157,36 @@ def calculate_depid_density(text: str) -> Optional[float]:
         logger.debug("[DEPID] ideadensity library not available")
         return None
 
+    # Generate SHA-256 hash of content for cache key
+    content_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
+    cache_key_prefix = "depid"
+
+    # Check cache first
+    try:
+        cache = get_cache()
+        cached_result = cache.get(cache_key_prefix, content_hash, 0)
+        if cached_result is not None:
+            logger.debug(f"[DEPID] Cache hit: {content_hash[:16]}...")
+            return float(cached_result)
+        logger.debug(f"[DEPID] Cache miss: {content_hash[:16]}...")
+    except Exception as e:
+        logger.warning(f"[DEPID] Cache lookup failed: {e}")
+
     try:
         # DEPID returns: (density, word_count, dependencies)
-        density, word_count, dependencies = depid(text, is_depid_r=True)
+        # Offload to thread pool to avoid blocking event loop
+        result = await asyncio.to_thread(depid, text, is_depid_r=True)
+        density, word_count, dependencies = result
         normalized = max(0.0, min(1.0, float(density)))
+
+        # Cache the result with 1 hour TTL
+        try:
+            cache = get_cache()
+            cache.set(cache_key_prefix, content_hash, 0, normalized, 3600)
+            logger.debug(f"[DEPID] Cached result: {content_hash[:16]}... = {normalized}")
+        except Exception as e:
+            logger.warning(f"[DEPID] Cache store failed: {e}")
+
         logger.debug(f"[DEPID] Raw={density}, Normalized={normalized}")
         return normalized
     except Exception as e:
@@ -186,9 +244,9 @@ def calculate_combined_density(
         Combined density score (0.0-1.0)
     """
     # Get weights from environment or defaults
-    cpidr_weight = float(os.getenv('CPIDR_WEIGHT', '0.5'))
-    depid_weight = float(os.getenv('DEPID_WEIGHT', '0.3'))
-    readability_weight = float(os.getenv('READABILITY_WEIGHT', '0.2'))
+    cpidr_weight = config.CPIDR_WEIGHT
+    depid_weight = config.DEPID_WEIGHT
+    readability_weight = config.READABILITY_WEIGHT
 
     total_weight = cpidr_weight + depid_weight + readability_weight
 
@@ -312,12 +370,12 @@ class ContentExtractor:
             signal_duration = time.time() - signal_start
 
             density_start = time.time()
-            cpidr_score = calculate_density(extracted)
-            depid_score = calculate_depid_density(extracted)
+            cpidr_score = await calculate_density(extracted)
+            depid_score = await calculate_depid_density(extracted)
             readability_scores = calculate_readability_scores(extracted)
             density_duration = time.time() - density_start
 
-            density_threshold = float(os.getenv('DENSITY_THRESHOLD', '0.45'))
+            density_threshold = config.DENSITY_THRESHOLD
 
             combined_start = time.time()
             combined_density = calculate_combined_density(
@@ -337,6 +395,7 @@ class ContentExtractor:
                 "url": url,
                 "title": title or "Untitled",
                 "content": extracted,
+                "raw_html": html,
                 "source": self._extract_domain(url),
                 "length": len(extracted),
                 "signal_score": round(signal_score, 2),
@@ -355,6 +414,12 @@ class ContentExtractor:
     async def _fetch_page(self, url: str) -> Optional[str]:
         """Fetch HTML content from a URL using shared connection pool."""
         try:
+            # Validate URL for SSRF protection
+            is_valid, error_message = validate_url(url)
+            if not is_valid:
+                logger.error(f"[FETCH] SSRF validation failed for {url}: {error_message}")
+                return None
+            
             client = get_http_client()
             response = await client.get(url)
             response.raise_for_status()
@@ -439,13 +504,18 @@ class ContentExtractor:
         try:
             parsed = urlparse(url)
             domain = parsed.netloc.replace("www.", "")
-            return domain
+            return domain if domain else "unknown"
         except:
             return "unknown"
 
     def _extract_title_fallback(self, html: str) -> Optional[str]:
         """Fallback title extraction from HTML."""
+        # First try to match a properly closed title tag
         match = re.search(r'<title[^>]*>([^<]+)</title>', html, re.I)
+        if match:
+            return match.group(1).strip()
+        # Fallback: match unclosed title tag (malformed HTML)
+        match = re.search(r'<title[^>]*>([^<]+)$', html, re.I)
         if match:
             return match.group(1).strip()
         return None

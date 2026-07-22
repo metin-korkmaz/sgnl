@@ -58,7 +58,11 @@ const state = {
     rotatorTimer: null,
     isScrambling: false,
     // Resize handler state
-    lastRenderedData: null
+    lastRenderedData: null,
+    // Network state
+    isOnline: navigator.onLine,
+    toastQueue: [],
+    toastActive: false
 };
 
 /* ========== DOM REFERENCES ========== */
@@ -79,7 +83,89 @@ const DOM = {
     heroSection: null
 };
 
-/* ========== UTILITY FUNCTIONS ========== */
+/* ========== ERROR HANDLING & TOASTS ========== */
+
+const ERROR_MESSAGES = {
+    'network': 'CONNECTION LOST. Waiting for network...',
+    'timeout': 'Request timeout. Service may be overloaded.',
+    'rate-limit': 'Too many requests. Please slow down.',
+    'offline': 'You are offline. Results may be stale.',
+    'server': 'Server error. Try again shortly.',
+    'generic': 'Something went wrong. Try again.'
+};
+
+function showToast(message, type = 'error', duration = 5000) {
+    if (state.toastActive) {
+        state.toastQueue.push({ message, type, duration });
+        return;
+    }
+
+    state.toastActive = true;
+    const toast = createElement('div', {
+        className: `toast toast--${type}`,
+        textContent: message
+    });
+    
+    document.body.appendChild(toast);
+    
+    // Animate in
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo(toast, 
+            { y: -50, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.3, ease: 'power2.out' }
+        );
+    }
+
+    // Auto dismiss
+    setTimeout(() => {
+        dismissToast(toast);
+    }, duration);
+}
+
+function dismissToast(toast) {
+    if (typeof gsap !== 'undefined') {
+        gsap.to(toast, {
+            y: -50,
+            opacity: 0,
+            duration: 0.2,
+            ease: 'power2.in',
+            onComplete: () => {
+                toast.remove();
+                state.toastActive = false;
+                processToastQueue();
+            }
+        });
+    } else {
+        toast.remove();
+        state.toastActive = false;
+        processToastQueue();
+    }
+}
+
+function processToastQueue() {
+    if (state.toastQueue.length > 0) {
+        const next = state.toastQueue.shift();
+        setTimeout(() => showToast(next.message, next.type, next.duration), 100);
+    }
+}
+
+function setupOfflineDetection() {
+    window.addEventListener('online', () => {
+        state.isOnline = true;
+        console.log('[SGNL] Network: Online');
+        showToast('// CONNECTION RESTORED', 'success', 3000);
+    });
+
+    window.addEventListener('offline', () => {
+        state.isOnline = false;
+        console.log('[SGNL] Network: Offline');
+        showToast('// CONNECTION LOST', 'error', 8000);
+    });
+}
+
+function checkOnlineStatus() {
+    return state.isOnline && navigator.onLine;
+}
 
 function extractDomain(url) {
     try {
@@ -358,6 +444,13 @@ async function handleSearch(event) {
     const topic = DOM.searchInput.value.trim();
     if (!topic || state.isLoading) return;
 
+    // Check online status first
+    if (!checkOnlineStatus()) {
+        showError(ERROR_MESSAGES['offline'], 'offline');
+        showToast('// OFFLINE MODE', 'error', 5000);
+        return;
+    }
+
     console.log('[SGNL] Starting parallel scan for:', topic);
 
     state.isLoading = true;
@@ -525,10 +618,16 @@ async function handleSearch(event) {
 function showAnalyzingIndicator() {
     const indicator = document.getElementById('analyzing-indicator');
     const textElement = indicator?.querySelector('.analyzing-text');
+    const resultsSection = document.getElementById('results-section');
     
     if (indicator && textElement) {
         indicator.style.display = 'flex';
         state.currentAnalyzingIndex = 0;
+        
+        // Set aria-busy to indicate loading state
+        if (resultsSection) {
+            resultsSection.setAttribute('aria-busy', 'true');
+        }
         
         if (typeof gsap !== 'undefined') {
             gsap.to(indicator, {
@@ -546,6 +645,8 @@ function showAnalyzingIndicator() {
 
 function hideAnalyzingIndicator() {
     const indicator = document.getElementById('analyzing-indicator');
+    const resultsSection = document.getElementById('results-section');
+    
     if (indicator) {
         if (state.analyzingInterval) {
             clearInterval(state.analyzingInterval);
@@ -555,6 +656,11 @@ function hideAnalyzingIndicator() {
             gsap.killTweensOf(indicator);
         }
         indicator.style.display = 'none';
+    }
+    
+    // Clear aria-busy when loading completes
+    if (resultsSection) {
+        resultsSection.setAttribute('aria-busy', 'false');
     }
 }
 
@@ -738,12 +844,16 @@ function injectIntelligenceReport(aiAnalysis) {
                 onComplete: () => {
                     // Auto-scroll to report smoothly
                     aiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Move focus to AI analysis section for accessibility
+                    aiSection.focus({ preventScroll: true });
                 }
             }
         );
     } else {
         // Fallback if GSAP is missing
         aiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Move focus to AI analysis section for accessibility
+        aiSection.focus({ preventScroll: true });
     }
 }
 
@@ -764,9 +874,17 @@ function showResultsSection() {
                 onComplete: () => {
                     DOM.resultsSection.style.maxHeight = 'none';
                     DOM.resultsSection.style.overflow = 'visible';
+                    // Move focus to results section for accessibility
+                    DOM.resultsSection.focus({ preventScroll: true });
                 }
             }
         );
+    } else {
+        // Fallback if GSAP is missing
+        DOM.resultsSection.style.maxHeight = 'none';
+        DOM.resultsSection.style.overflow = 'visible';
+        // Move focus to results section for accessibility
+        DOM.resultsSection.focus({ preventScroll: true });
     }
 }
 
@@ -827,14 +945,14 @@ function showError(message, errorType = 'generic', retryAfter = 60) {
 
     if (errorType === 'no-signal') {
         // NO SIGNAL FOUND - stark brutalist design
-        errorEl = createElement('div', { className: 'error-state error-state--no-signal' });
+        errorEl = createElement('div', { className: 'error-state error-state--no-signal', tabindex: '-1' });
         errorEl.appendChild(createElement('div', { className: 'error-icon', textContent: '[ / ]' }));
         errorEl.appendChild(createElement('h2', { className: 'error-headline', textContent: 'NO SIGNAL FOUND' }));
         errorEl.appendChild(createElement('p', { className: 'error-subtext', textContent: 'The internet is full of noise, but not this kind.' }));
         errorEl.appendChild(createElement('p', { className: 'error-hint', textContent: 'Try a different search vector.' }));
     } else if (errorType === 'rate-limit') {
         // RATE LIMIT - aggressive Access Denied style
-        errorEl = createElement('div', { className: 'error-state error-state--rate-limit' });
+        errorEl = createElement('div', { className: 'error-state error-state--rate-limit', tabindex: '-1' });
         errorEl.appendChild(createElement('h2', { className: 'error-headline error-headline--alert', textContent: 'SYSTEM OVERLOAD // 429' }));
         errorEl.appendChild(createElement('p', { className: 'error-subtext', textContent: 'REQUEST LIMIT EXCEEDED. COOLDOWN INITIATED.' }));
         
@@ -847,14 +965,14 @@ function showError(message, errorType = 'generic', retryAfter = 60) {
         countdownP.appendChild(cursorSpan);
         errorEl.appendChild(countdownP);
     } else if (errorType === 'timeout') {
-        errorEl = createElement('div', { className: 'error-state error-state--timeout' });
+        errorEl = createElement('div', { className: 'error-state error-state--timeout', tabindex: '-1' });
         errorEl.appendChild(createElement('div', { className: 'error-icon', textContent: '[ TIMEOUT ]' }));
         errorEl.appendChild(createElement('h2', { className: 'error-headline error-headline--alert', textContent: 'ANALYSIS TIMEOUT' }));
         errorEl.appendChild(createElement('p', { className: 'error-subtext', textContent: 'Analysis timeout. Try a more specific topic for faster results.' }));
         errorEl.appendChild(createElement('p', { className: 'error-hint', textContent: 'Narrow your search to fewer results or use more precise keywords.' }));
     } else {
         // Generic error - user message is escaped
-        errorEl = createElement('div', { className: 'error-state error-state--generic' });
+        errorEl = createElement('div', { className: 'error-state error-state--generic', tabindex: '-1' });
         errorEl.appendChild(createElement('h2', { className: 'error-headline', textContent: 'ERROR' }));
         const subtext = createElement('p', { className: 'error-subtext' });
         subtext.textContent = sanitizeText(message);
@@ -862,6 +980,9 @@ function showError(message, errorType = 'generic', retryAfter = 60) {
     }
 
     DOM.resultsBody.appendChild(errorEl);
+
+    // Move focus to error message for accessibility
+    errorEl.focus({ preventScroll: true });
 
     // Start countdown AFTER HTML is in DOM
     if (errorType === 'rate-limit') {
@@ -1183,6 +1304,12 @@ function renderResults(data, aiAnalysis = null) {
             resultsHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }, 100);
+    
+    // Clear aria-busy when results are fully rendered
+    const resultsSection = document.getElementById('results-section');
+    if (resultsSection) {
+        resultsSection.setAttribute('aria-busy', 'false');
+    }
 }
 
 /* ========== EVENT LISTENERS ========== */
@@ -1230,6 +1357,7 @@ function init() {
     setupGarbageEffect();
     setupSmoothScroll();
     setupRotator();
+    setupOfflineDetection();
 
     document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
     initTheme();

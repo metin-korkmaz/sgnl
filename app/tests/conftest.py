@@ -16,7 +16,7 @@ def sample_html():
     """Sample HTML content for testing."""
     return '''
 <html>
-<head><title>Test Article</title></head>
+<head><title>Test Article - Understanding Machine Learning</title></head>
 <body>
     <h1>Test</h1>
     <p>This is a test article with content.</p>
@@ -42,7 +42,7 @@ def sample_text_high_density():
 @pytest.fixture
 def sample_text_low_density():
     """Low density text content."""
-    return "Short text"
+    return "This is some low density text that is long enough to pass the threshold. It is very simple and repetitive."
 
 
 @pytest.fixture

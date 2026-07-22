@@ -1,0 +1,126 @@
+# ============================================================================
+# CRITICAL: ENVIRONMENT FILES - PROTECT CREDENTIALS
+# ============================================================================
+# Environment files (CRITICAL - protect credentials)
+*.env
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+.env.development
+.env.*.local
+.envrc
+
+# Keep example templates (safe to commit)
+!.env.example
+!.env.local.example
+!.env.template
+
+# ============================================================================
+# SECRETS AND CREDENTIALS
+# ============================================================================
+# Secrets directories
+secrets/
+.secrets/
+encrypted/
+credentials/
+creds/
+
+# Credential files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*private*
+*credential*
+.secret
+secrets.json
+credentials.json
+service-account.json
+
+# API Keys and tokens
+*.apikey
+*.token
+api-keys.txt
+api_keys.txt
+
+# ============================================================================
+# n8n (contains workflow credentials)
+# ============================================================================
+.n8n/
+.n8n/config
+n8n-database.sqlite
+n8n.db
+
+# ============================================================================
+# DEPLOYMENT CONFIGS
+# ============================================================================
+# Deployment configs (may contain secrets)
+docker-compose.prod.yml
+docker-compose.local.yml
+docker-compose.override.yml
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ============================================================================
+# VIRTUAL ENVIRONMENTS
+# ============================================================================
+venv/
+env/
+.venv/
+.env/
+
+# ============================================================================
+# IDE
+# ============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ============================================================================
+# OS
+# ============================================================================
+.DS_Store
+Thumbs.db
+
+# ============================================================================
+# LOGS
+# ============================================================================
+*.log
+*.tmp
+
+# ============================================================================
+# DATABASE
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# MISC
+# ============================================================================
+.git/
+.docker/
+.opencode/
+
+
+# Test databases
+app/test_analytics.db
+app/analytics.db
+*.db
+
+# Sisyphus evidence and notepads
+.sisyphus/evidence/
+.sisyphus/notepads/
+
+# llamaindex (not part of project)
+llamaindex-python/

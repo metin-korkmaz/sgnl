@@ -20,6 +20,7 @@ import uuid
 from collections import defaultdict
 from dotenv import load_dotenv
 import ipaddress
+from contextlib import asynccontextmanager
 
 
 class CachedStaticFiles(StarletteStaticFiles):
@@ -444,7 +445,17 @@ async def sanitized_exception_handler(request: Request, exc: Exception):
     )
 
 
-app = FastAPI(title="SGNL Extraction Engine", version="2.0.0")
+
+@asynccontextmanager
+async def lifespan(app_instance):
+    """Manage application lifecycle."""
+    yield
+    # Cleanup on shutdown
+    from extractor import close_http_client
+    await close_http_client()
+    logger.info("[SHUTDOWN] Resources cleaned up")
+
+app = FastAPI(title="SGNL Extraction Engine", version="2.0.0", lifespan=lifespan)
 
 # Register custom exception handler for unhandled exceptions
 # Note: HTTPException is handled natively by FastAPI and will not be caught here
@@ -929,13 +940,6 @@ async def cache_clear(api_key: str = Depends(require_api_key)):
     return {"status": "ok", "message": "Cache cleared"}
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup resources on shutdown."""
-    # Close shared HTTP client
-    from extractor import close_http_client
-    await close_http_client()
-    logger.info("[SHUTDOWN] Resources cleaned up")
 
 
 # ============ n8n Integration Endpoints ============

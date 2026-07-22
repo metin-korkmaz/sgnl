@@ -5,9 +5,9 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
 import logging
-import os
 
 from analytics_models import Base, VisitorLog
+from config import config
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,7 @@ _SessionLocal = None
 def get_engine():
     global _engine, _SessionLocal
     if _engine is None:
-        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./analytics.db")
-        _engine = create_engine(DATABASE_URL)
+        _engine = create_engine(config.DATABASE_URL)
         _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
     return _engine
 

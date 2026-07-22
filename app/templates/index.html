@@ -42,6 +42,9 @@
 </head>
 
 <body>
+    <!-- Skip to Content Link -->
+    <a href="#main-content" class="skip-link visually-hidden">Skip to main content</a>
+
     <!-- Visible Grid Lines (Background) -->
     <div class="grid-lines" aria-hidden="true"></div>
 
@@ -76,7 +79,7 @@
     </nav>
 
     <!-- Main Content -->
-    <main>
+    <main id="main-content">
         <!-- Hero Section - Integrated Rotator -->
         <header class="hero" id="hero">
             <div class="hero-content">
@@ -93,10 +96,10 @@
 
             <!-- Hero CTAs -->
             <div class="hero-ctas">
-                <button class="cta-btn cta-btn--primary" data-scroll-to="search">
+                <button class="cta-btn cta-btn--primary" data-scroll-to="search" aria-label="Start discovery search">
                     [ START DISCOVERY ]
                 </button>
-                <button class="cta-btn cta-btn--secondary" data-scroll-to="comparison">
+                <button class="cta-btn cta-btn--secondary" data-scroll-to="comparison" aria-label="See how it works">
                     [ SEE IT WORK ]
                 </button>
             </div>
@@ -113,7 +116,7 @@
                     <div class="search-input-wrap">
                         <div class="cmd-prompt">></div>
                         <input type="text" class="search-input" id="search-input" placeholder="ENTER SEARCH VECTOR"
-                            autocomplete="off" spellcheck="false">
+                            autocomplete="off" spellcheck="false" aria-label="Search for content">
                         <button type="button" class="search-btn" id="search-btn">
                             SCAN
                         </button>
@@ -123,10 +126,10 @@
         </section>
 
         <!-- Results Section (Initially Hidden) -->
-        <section class="results-section results-section--hidden" id="results-section">
+        <section class="results-section results-section--hidden" id="results-section" tabindex="-1" aria-live="polite" aria-busy="false">
             <div class="container">
                 <!-- AI Analysis Section (Dynamic) -->
-                <div class="ai-analysis" id="ai-analysis" style="display: none;">
+                <div class="ai-analysis" id="ai-analysis" style="display: none;" tabindex="-1" aria-live="polite">
                     <div class="analysis-header">
                         <h3 class="analysis-headline">INTELLIGENCE REPORT //</h3>
                         <div class="analysis-header-meta">
@@ -176,7 +179,7 @@
                 </div>
 
                 <!-- Analyzing Indicator (shown while deep scan runs) -->
-                <div class="analyzing-indicator" id="analyzing-indicator" style="display: none;">
+                <div class="analyzing-indicator" id="analyzing-indicator" style="display: none;" role="status" aria-live="polite" aria-label="Analyzing content">
                     <div class="analyzing-pulse"></div>
                     <span class="analyzing-text">ANALYZING SIGNALS...</span>
                 </div>

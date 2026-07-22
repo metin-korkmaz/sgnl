@@ -4,7 +4,7 @@ Logic-based content scoring without LLM (for speed).
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import logging
@@ -66,7 +66,7 @@ class HeuristicAnalyzer:
         self, 
         html_content: str, 
         query_context: str
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Analyze HTML content and return a signal score.
         

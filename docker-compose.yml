@@ -3,15 +3,18 @@ services:
     build: .
     container_name: sgnl-api
     restart: unless-stopped
-    expose:
-      - "${PORT:-8000}"
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - '8000:8000'
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     labels:
       # Nginx Proxy Manager timeout configuration
-      - "nginx.proxy_connect_timeout=300"
-      - "nginx.proxy_send_timeout=300"
-      - "nginx.proxy_read_timeout=300"
+      - 'nginx.proxy_connect_timeout=300'
+      - 'nginx.proxy_send_timeout=300'
+      - 'nginx.proxy_read_timeout=300'
     environment:
       - PYTHONUNBUFFERED=1
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -36,12 +39,35 @@ services:
       - CACHE_TTL_FAST_SEARCH=${CACHE_TTL_FAST_SEARCH:-3600}
       - CACHE_TTL_SCAN_TOPIC=${CACHE_TTL_SCAN_TOPIC:-3600}
       - CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-1000}
+      - REDIS_URL=${REDIS_URL:-redis://:changeme@redis:6379/0}
       - FAST_SEARCH_TIMEOUT_SECONDS=${FAST_SEARCH_TIMEOUT_SECONDS:-30}
       - SCAN_TOPIC_TIMEOUT_SECONDS=${SCAN_TOPIC_TIMEOUT_SECONDS:-180}
     networks:
       - nginx-proxy_default
 
+  redis:
+    image: redis:7-alpine
+    container_name: sgnl-redis
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes --requirepass ${REDIS_PASSWORD:-changeme}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD:-changeme}', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nginx-proxy_default
+
+volumes:
+  redis_data:
+
 networks:
   nginx-proxy_default:
     external: true
-

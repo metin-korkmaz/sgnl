@@ -60,11 +60,24 @@
 
     function send(url, data) {
         const apiBase = window.location.origin;
+        const fullUrl = apiBase + url;
+        const payload = JSON.stringify(data);
         
-        navigator.sendBeacon(
-            apiBase + url,
-            JSON.stringify(data)
-        );
+        // Try sendBeacon first (works during page unload)
+        if (navigator.sendBeacon) {
+            const success = navigator.sendBeacon(fullUrl, payload);
+            if (success) return;
+        }
+        
+        // XHR fallback for older browsers or when sendBeacon fails
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', fullUrl, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(payload);
+        } catch (e) {
+            console.warn('[SGNL Analytics] Failed to send:', e);
+        }
     }
 
     function sendAnalyticsBeforeUnload() {

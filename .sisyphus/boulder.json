@@ -1,9 +1,50 @@
 {
-  "active_plan": "/root/sgnl-backend/.sisyphus/plans/ui-design-improvements.md",
-  "started_at": "2026-03-09T06:53:55.159Z",
+  "active_plan": "/root/sgnl-backend/.sisyphus/plans/retro-action-items.md",
+  "started_at": "2026-04-22T14:25:06.370Z",
   "session_ids": [
-    "ses_3304fda58ffeDxQAMh3BiUdD4X"
+    "ses_24a89b553ffe7E5leIZZUl9iJY"
   ],
-  "plan_name": "ui-design-improvements",
-  "agent": "atlas"
+  "session_origins": {
+    "ses_24a89b553ffe7E5leIZZUl9iJY": "direct"
+  },
+  "plan_name": "retro-action-items",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Delete temporary files from repo root",
+      "session_id": "ses_24a6a8d79ffenOSoGXDnl6XbVa",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-22T14:26:25.042Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "Fix Redis async initialization in HybridCache",
+      "session_id": "ses_24a67df9cffeIT7UJEFxnh2QtY",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-04-22T14:32:42.439Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "Final QA verification",
+      "session_id": "ses_24a63bb05ffenejrBSCSZhvfqh",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-22T14:33:56.113Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** — `oracle`",
+      "session_id": "ses_24a42015effewV6AqzJzeuhqwr",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-22T15:16:39.691Z"
+    }
+  }
 }

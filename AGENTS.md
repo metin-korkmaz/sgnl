@@ -46,7 +46,15 @@ python -m spacy download en_core_web_sm
 ```
 
 ### Linting
-No linter configured (no .flake8, pylint, ruff found). Add one if needed.
+```bash
+# Run linter
+ruff check app/
+
+# Format code
+ruff format app/
+```
+
+Configuration is in `pyproject.toml` (lines 35-65).
 
 ## Project Structure
 
