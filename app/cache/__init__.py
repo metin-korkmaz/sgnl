@@ -187,62 +187,27 @@ class HybridCache:
         return f"{prefix}:{topic_hash}:{max_results}"
 
     def get(self, prefix: str, topic: str, max_results: int) -> Optional[Any]:
-        """Get value from cache (Redis first, then memory fallback)."""
-        key = self._generate_key(prefix, topic, max_results)
-
-        if self._redis_cache:
-            try:
-                loop = asyncio.get_running_loop()
-                # We're in async context - use lazy connection
-                if loop.is_running():
-                    # Use asyncio.run_coroutine_threadsafe for sync->async bridge
-                    future = asyncio.run_coroutine_threadsafe(self._ensure_connected(), loop)
-                    try:
-                        connected = future.result(timeout=2.0)
-                    except Exception:
-                        connected = False
-                    if connected:
-                        result_future = asyncio.run_coroutine_threadsafe(
-                            self._redis_cache.get(key), loop
-                        )
-                        result = result_future.result(timeout=2.0)
-                        if result is not None:
-                            logger.debug(f"[CACHE] Redis hit: {key}")
-                            return result
-            except RuntimeError:
-                # No running loop - not in async context, skip Redis
-                pass
-            except Exception as e:
-                logger.warning(f"[CACHE] Redis connection failed: {e}")
-                self._redis_available = False
-
+        """Get from memory cache (Redis async bridge limited in event loop thread)."""
         return self._memory_cache.get(prefix, topic, max_results)
 
     def set(self, prefix: str, topic: str, max_results: int, value: Any, ttl_seconds: int):
-        """Set value in cache (Redis and memory)."""
+        """Set in memory cache, fire-and-forget to Redis."""
         key = self._generate_key(prefix, topic, max_results)
 
         if self._redis_cache:
+            async def _bg_set():
+                try:
+                    if await self._ensure_connected():
+                        await self._redis_cache.set(key, value, ttl=ttl_seconds)
+                        logger.debug(f"[CACHE] Redis set: {key}")
+                except Exception as e2:
+                    logger.debug(f"[CACHE] Redis bg set skipped: {e2}")
             try:
                 loop = asyncio.get_running_loop()
                 if loop.is_running():
-                    future = asyncio.run_coroutine_threadsafe(self._ensure_connected(), loop)
-                    try:
-                        connected = future.result(timeout=2.0)
-                    except Exception:
-                        connected = False
-                    if connected:
-                        set_future = asyncio.run_coroutine_threadsafe(
-                            self._redis_cache.set(key, value, ttl=ttl_seconds), loop
-                        )
-                        set_future.result(timeout=2.0)
-                        logger.debug(f"[CACHE] Redis set: {key}")
+                    asyncio.ensure_future(_bg_set())
             except RuntimeError:
-                # No running loop - not in async context, skip Redis
                 pass
-            except Exception as e:
-                logger.warning(f"[CACHE] Redis set failed: {e}")
-                self._redis_available = False
 
         self._memory_cache.set(prefix, topic, max_results, value, ttl_seconds)
 

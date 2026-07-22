@@ -101,18 +101,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
 
         try:
-            cache = get_cache()
-            if cache.is_redis_available() and cache._redis_cache:
-                redis_client = cache._redis_cache._redis
-                if redis_client:
-                    logger.info("[RATE-LIMIT] Using RedisRateLimiter")
-                    return RedisRateLimiter(
-                        redis_client=redis_client,
-                        limit=self._rate_limit,
-                        window_seconds=self._window_seconds
-                    )
+            from cache.redis_cache import RedisCache
+            import asyncio
+            redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+            redis_cache = RedisCache(redis_url=redis_url)
+            redis_client = redis_cache._redis
+
+            logger.info("[RATE-LIMIT] Using RedisRateLimiter")
+            return RedisRateLimiter(
+                redis_client=redis_client,
+                limit=self._rate_limit,
+                window_seconds=self._window_seconds
+            )
         except Exception as e:
-            logger.warning(f"[RATE-LIMIT] Redis initialization failed, falling back to in-memory: {e}")
+            logger.warning(f"[RATE-LIMIT] Redis init failed, using in-memory: {e}")
 
         logger.info("[RATE-LIMIT] Using InMemoryRateLimiter")
         return InMemoryRateLimiter(

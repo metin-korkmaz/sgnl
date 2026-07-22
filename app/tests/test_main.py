@@ -8,7 +8,14 @@ from starlette.responses import Response
 
 
 class TestRateLimitMiddleware:
-    """Test RateLimitMiddleware functionality."""
+    """Test RateLimitMiddleware functionality.
+
+    Uses InMemoryRateLimiter since test environment has no Redis.
+    """
+    @classmethod
+    def setup_class(cls):
+        import app.main as main_module
+        main_module.RedisRateLimiter = None
 
     def test_init(self):
         """Test middleware initialization."""

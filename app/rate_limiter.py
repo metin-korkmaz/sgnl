@@ -10,7 +10,7 @@ from typing import Tuple, Dict, Any, Optional
 import redis.asyncio as redis
 from redis.asyncio import Redis
 
-from .rate_limiter_interface import RateLimiterInterface
+from rate_limiter_interface import RateLimiterInterface
 
 logger = logging.getLogger(__name__)
 
